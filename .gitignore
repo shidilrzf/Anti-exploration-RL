@@ -1,3 +1,16 @@
+results/
+graphs/
+latent_temp_dir/
+todo.txt
+data/
+models/
+output/
+buffers/
+runs/
+logs/
+*.pkl
+*.png
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
