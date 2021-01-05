@@ -54,14 +54,19 @@ def train(network, dataloader, optimizer, epoch, device):
         y_zeros = torch.zeros(batch_size, 1).to(device)
 
         data = torch.cat((obs, act), dim=1)
+
         data_random = get_random_actions(obs, act, num_random).to(device)
-        # print('data:{}, data_random:{}'.format(data.size(), data_random.size()))
+
+        # shuffled_ind = np.random.permutation(act.shape[0])
+        # shuffled_act = act[shuffled_ind]
+        # data_shuffled = torch.cat((obs, shuffled_act), dim=1)
 
         output_data = network(data)
+        # output_shuffled = network(data_shuffled)
         output_random = network(data_random).view(batch_size, num_random, 1)
         output_random = torch.mean(output_random, 1)
 
-        loss = 2 * loss_func(output_data, y_ones) + loss_func(output_random, y_zeros)
+        loss = loss_func(output_data, y_ones) + loss_func(output_random, y_zeros)
 
         network.zero_grad()
         loss.backward()
@@ -78,7 +83,7 @@ def train(network, dataloader, optimizer, epoch, device):
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description='classifier based bonus')
-    parser.add_argument("--env", type=str, default='halfcheetah-medium-v0')
+    parser.add_argument("--env", type=str, default='walker2d-medium-v0')
     parser.add_argument("--gpu", default='0', type=str)
     # network
     parser.add_argument('--layer_size', default=256, type=int)
@@ -90,7 +95,7 @@ if __name__ == "__main__":
     # sigam for the noisey actions
     parser.add_argument('--std', type=float, default=0.25, help='std for the noise added to actions')
     # normalization
-    parser.add_argument('--use_norm', action='store_true', default=False, help='use norm')
+    parser.add_argument('--use_norm', action='store_true', default=True, help='use norm')
     # cuda
     parser.add_argument('--no-cuda', action='store_true', default=False, help='disables cuda (default: False')
     parser.add_argument('--device-id', type=int, default=0, help='GPU device id (default: 0')
@@ -185,7 +190,7 @@ if __name__ == "__main__":
             logger.add_scalar(log_dir + '/train-loss', t_loss, epoch)
         if t_loss < best_loss:
             best_loss = t_loss
-            file_name = 'models/{}_{}.pt'.format(timestamp, args.env)
+            file_name = 'models/discriminator_{}_{}.pt'.format(timestamp, args.env)
             print('Writing model checkpoint, loss:{:.2g}'.format(t_loss))
             print('Writing model checkpoint : {}'.format(file_name))
 
