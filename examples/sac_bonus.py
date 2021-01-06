@@ -5,10 +5,9 @@ from rlkit.data_management.env_replay_buffer import EnvReplayBuffer
 from rlkit.envs.wrappers import NormalizedBoxEnv
 from rlkit.launchers.launcher_util import setup_logger
 from rlkit.samplers.data_collector import MdpPathCollector, CustomMDPPathCollector
-from rlkit.torch.sac.policies import TanhGaussianPolicy, TanhGaussianPolicy_BC, MakeDeterministic
+from rlkit.torch.sac.policies import TanhGaussianPolicy, TanhGaussianPolicy_BC
 from rlkit.torch.sac.sac import SACTrainer
-from rlkit.torch.sac.sac_rnd import SAC_RNDTrainer
-from rlkit.torch.sac.sac_rnd_kl import SAC_RNDTrainerKL
+
 from rlkit.torch.sac.sac_cls import SAC_BonusTrainer
 from rlkit.torch.sac.sac_cls_mlt import SAC_BonusTrainer_Mlt
 
@@ -19,15 +18,15 @@ from rlkit.torch.torch_rl_algorithm import TorchBatchRLAlgorithm
 
 from torch.nn import functional as F
 
-import h5py
+
 import argparse
-import os
+
 import gym
 import d4rl
 import numpy as np
 import torch
 import time
-import _pickle as cPickle
+
 
 
 def load_hdf5(dataset, replay_buffer, max_size):
