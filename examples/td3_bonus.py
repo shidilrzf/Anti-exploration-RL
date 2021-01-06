@@ -306,7 +306,6 @@ if __name__ == "__main__":
         exp_dir = '{}/offline/{}_{}'.format(args.env, timestamp, args.seed)
 
     # setup the logger
-    print('experiment dir:logs/{}'.format(exp_dir))
     setup_logger(variant=variant, log_dir='logs/{}'.format(exp_dir))
 
     # cuda setup
@@ -322,4 +321,5 @@ if __name__ == "__main__":
         map_location = 'cpu'
         ptu.set_gpu_mode(False)  # optionally set the GPU (default=False)
 
+    print('experiment dir:logs/{}'.format(exp_dir))
     experiment(variant)
