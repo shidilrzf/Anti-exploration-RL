@@ -62,7 +62,7 @@ def load_hdf5(dataset, replay_buffer, max_size):
 
 
 def experiment(variant):
-    eval_env = gym.make(variant['env_name'])
+    eval_env = gym.make(variant['env'])
     expl_env = eval_env
     obs_dim = expl_env.observation_space.low.size
     action_dim = eval_env.action_space.low.size
@@ -114,8 +114,9 @@ def experiment(variant):
         bonus_network.load_state_dict(checkpoint['network_state_dict'])
         print('Loading bonus model: {}'.format(variant['bonus_path']))
 
-    eval_path_collector = CustomMDPPathCollector(
+    eval_path_collector = MdpPathCollector(
         eval_env,
+        policy,
     )
     expl_path_collector = MdpPathCollector(
         expl_env,
@@ -160,7 +161,6 @@ def experiment(variant):
 
     elif variant['bonus'] == 'bonus_add':
         trainer = TD3_Bonus_ADD_Trainer(
-            env=eval_env,
             policy=policy,
             qf1=qf1,
             qf2=qf2,
@@ -190,7 +190,7 @@ def experiment(variant):
         evaluation_data_collector=eval_path_collector,
         replay_buffer=replay_buffer,
         batch_rl=True,
-        q_learning_alg=True,
+        q_learning_alg=False,
         **variant['algorithm_kwargs']
     )
     algorithm.to(ptu.device)
@@ -247,7 +247,7 @@ if __name__ == "__main__":
         replay_buffer_size=int(1E6),
         buffer_filename=args.env,  # halfcheetah_101000.pkl',
         load_buffer=True,
-        env_name=args.env,
+        env=args.env,
         seed=args.seed,
         # bonus_type
         use_bonus_policy=False,
