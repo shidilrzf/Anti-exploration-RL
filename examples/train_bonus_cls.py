@@ -108,6 +108,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     env = gym.make(args.env)
+    print('environemnt:{}'.format(args.env))
     obs_dim = env.observation_space.low.size
     action_dim = env.action_space.low.size
 

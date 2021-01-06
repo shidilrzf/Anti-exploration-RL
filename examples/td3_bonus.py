@@ -1,16 +1,19 @@
+
+
 import rlkit.torch.pytorch_util as ptu
 from rlkit.data_management.env_replay_buffer import EnvReplayBuffer
 # from rlkit.envs.wrappers import NormalizedBoxEnv
 from rlkit.launchers.launcher_util import setup_logger
 from rlkit.samplers.data_collector import MdpPathCollector, CustomMDPPathCollector
-from rlkit.torch.sac.policies import TanhMlpPolicy
-from rlkit.torch.sac.sac import SACTrainer
+
+
+from rlkit.torch.networks import FlattenMlp, TanhMlpPolicy
 
 # from rlkit.torch.sac.sac_cls import SAC_BonusTrainer
-from rlkit.torch.td3.td3_bonus_add import TD3_Bonus_ADD_Trainer
+
+from rlkit.torch.td3.td3_bonus_add import *
 from rlkit.torch.td3.td3 import TD3Trainer
 
-from rlkit.torch.networks import FlattenMlp
 from rlkit.torch.networks import Mlp
 
 from rlkit.torch.torch_rl_algorithm import TorchBatchRLAlgorithm
@@ -21,7 +24,7 @@ from torch.nn import functional as F
 import argparse
 
 import gym
-# import d4rl
+import d4rl
 import numpy as np
 import torch
 import time
@@ -143,7 +146,6 @@ def experiment(variant):
         print('.... reward is shifted : {} '.format(rewards_shift_param))
     else:
         rewards_shift_param = None
-
     if variant['offline']:
         trainer = TD3Trainer(
             policy=policy,
@@ -198,7 +200,7 @@ def experiment(variant):
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description='TD3_bonus')
-    parser.add_argument("--env", type=str, default='halfcheetah-medium-v0')
+    parser.add_argument("--env", type=str, default='walker2d-medium-v0')
     # sac
     parser.add_argument('--alpha_lr', default=3e-5, type=float)
     parser.add_argument('--qf_lr', default=3e-4, type=float)
@@ -215,7 +217,7 @@ if __name__ == "__main__":
     parser.add_argument('--bonus_layer', default=256, type=int, help='layer size of the bonus model')
     parser.add_argument('--normalize', action='store_true', default=True, help='use normalization in bonus')
     parser.add_argument('--reward_shift', default=None, type=int, help='minimum reward')
-    parser.add_argument('--use_log', action='store_true', default=False, help='use log(bonus(s, a) otherwise 1 - bonus(s, a)')
+    parser.add_argument('--use_log', action='store_true', default=False, help='use log(bonus(s, a) otherwise bonus(s, a)')
 
     # d4rl
     parser.add_argument('--dataset_path', type=str, default=None, help='d4rl dataset path')
@@ -229,6 +231,7 @@ if __name__ == "__main__":
     # bonus_path = '{}RL/continuous_rnd/sac/examples/models/{}'.format(
     #     args.root_path, args.bonus_model)
     bonus_path = 'models/{}'.format(args.bonus_model)
+    print(bonus_path)
 
     variant = dict(
         algorithm="TD3",
