@@ -6,6 +6,7 @@ data/
 models/
 output/
 buffers/
+notebooks/
 runs/
 logs/
 *.pkl
