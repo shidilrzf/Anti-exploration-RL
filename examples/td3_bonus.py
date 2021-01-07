@@ -11,7 +11,8 @@ from rlkit.torch.networks import FlattenMlp, TanhMlpPolicy
 
 # from rlkit.torch.sac.sac_cls import SAC_BonusTrainer
 
-from rlkit.torch.td3.td3_bonus_add import *
+from rlkit.torch.td3.td3_bonus_add import TD3_Bonus_ADD_Trainer
+from rlkit.torch.td3.td3_bonus_mlt import TD3_Bonus_MLT_Trainer
 from rlkit.torch.td3.td3 import TD3Trainer
 
 from rlkit.torch.networks import Mlp
@@ -178,6 +179,26 @@ def experiment(variant):
             **variant['trainer_kwargs']
         )
         print('Agent of type TD3 + additive bonus created')
+
+    elif variant['bonus'] == 'bonus_mlt':
+        trainer = TD3_Bonus_MLT_Trainer(
+            policy=policy,
+            qf1=qf1,
+            qf2=qf2,
+            target_qf1=target_qf1,
+            target_qf2=target_qf2,
+            target_policy=target_policy,
+            bonus_network=bonus_network,
+            beta=variant['bonus_beta'],
+            use_bonus_critic=variant['use_bonus_critic'],
+            use_bonus_policy=variant['use_bonus_policy'],
+            use_log=variant['use_log'],
+            bonus_norm_param=bonus_norm_param,
+            rewards_shift_param=rewards_shift_param,
+            device=ptu.device,
+            **variant['trainer_kwargs']
+        )
+        print('Agent of type TD3 + multiplicative bonus created')
 
     else:
         raise ValueError('Not implemented error')
