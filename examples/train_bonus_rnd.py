@@ -60,7 +60,7 @@ if __name__ == "__main__":
     parser.add_argument("--env", type=str, default='halfcheetah-medium-v0')
     parser.add_argument("--gpu", default='0', type=str)
     # network
-    parser.add_argument('--layer_size', default=64, type=int)
+    parser.add_argument('--layer_size', default=128, type=int)
     # Optimizer
     parser.add_argument('--epochs', type=int, default=5, metavar='N', help='number of training epochs')
     parser.add_argument('--lr', type=float, default=3e-4, help='Learning rate (default: 2e-4')
@@ -128,7 +128,7 @@ if __name__ == "__main__":
     target_network = Mlp(
         input_size=obs_dim + action_dim,
         output_size=1,
-        hidden_sizes=[M, M],
+        hidden_sizes=[M, M, M, M],
     ).to(device)
     for param in target_network.parameters():
         param.requires_grad = False
@@ -142,7 +142,7 @@ if __name__ == "__main__":
             logger.add_scalar(log_dir + '/train-loss', t_loss, epoch)
         if t_loss < best_loss:
             best_loss = t_loss
-            file_name = 'models/{}_{}.pt'.format(timestamp, args.env)
+            file_name = 'models/RND_{}_{}.pt'.format(timestamp, args.env)
             print('Writing model checkpoint, loss:{:.2g}'.format(t_loss))
             print('Writing model checkpoint : {}'.format(file_name))
 
