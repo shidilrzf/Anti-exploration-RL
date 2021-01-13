@@ -61,8 +61,9 @@ if __name__ == "__main__":
     parser.add_argument("--gpu", default='0', type=str)
     # network
     parser.add_argument('--layer_size', default=128, type=int)
+    parser.add_argument('--feature_size', default=64, type=int)
     # Optimizer
-    parser.add_argument('--epochs', type=int, default=5, metavar='N', help='number of training epochs')
+    parser.add_argument('--epochs', type=int, default=200, metavar='N', help='number of training epochs')
     parser.add_argument('--lr', type=float, default=3e-4, help='Learning rate (default: 2e-4')
     parser.add_argument('--batch-size', type=int, default=256, metavar='N', help='input training batch-size')
     parser.add_argument('--seed', default=0, type=int)
@@ -121,13 +122,13 @@ if __name__ == "__main__":
     M = args.layer_size
     network = Mlp(
         input_size=obs_dim + action_dim,
-        output_size=1,
-        hidden_sizes=[M, M, M, M, M],
+        output_size=args.feature_size,
+        hidden_sizes=[M, M, M, M],
     ).to(device)
 
     target_network = Mlp(
         input_size=obs_dim + action_dim,
-        output_size=1,
+        output_size=args.feature_size,
         hidden_sizes=[M, M],
     ).to(device)
     for param in target_network.parameters():
