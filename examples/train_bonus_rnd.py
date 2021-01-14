@@ -20,7 +20,7 @@ import time
 
 def train(network, target_network, dataloader, optimizer, epoch, use_cuda):
 
-    loss_func = nn.MSELoss(reduction='sum')
+    loss_func = nn.MSELoss(reduction='mean')
 
     network.train()
     desc = 'Train'
@@ -89,7 +89,7 @@ if __name__ == "__main__":
     if args.use_norm:
         print('.. using normalization ..')
         obs = (obs - obs.mean(axis=0)) / obs.std(axis=0)
-        actions = (actions - actions.mean(axis=0)) / actions.std(axis=0)
+        # actions = (actions - actions.mean(axis=0)) / actions.std(axis=0)
 
     dataset = TensorDataset(torch.Tensor(obs), torch.Tensor(actions))
     dataloader = DataLoader(dataset, batch_size=args.batch_size, shuffle=False)
