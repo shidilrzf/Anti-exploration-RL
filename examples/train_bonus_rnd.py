@@ -47,7 +47,7 @@ def train(network, target_network, dataloader, optimizer, epoch, use_cuda):
 
         # Reporting
         batch_loss = loss.item() / obs.size(0)
-        total_loss += loss.item()
+        total_loss += loss.item() / obs.size(0)
 
         tqdm_bar.set_description('{} Epoch: [{}] Batch Loss: {:.2g}'.format(desc, epoch, batch_loss))
 
