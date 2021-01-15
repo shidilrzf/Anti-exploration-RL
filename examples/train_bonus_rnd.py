@@ -37,7 +37,9 @@ def train(network, target_network, dataloader, optimizer, epoch, use_cuda):
         data = torch.cat((obs, act), dim=1)
 
         predicted = network(data)
-        target = target_network(data)
+
+        with torch.no_grad():
+            target = target_network(data)
 
         loss = loss_func(predicted, target.detach())
 
