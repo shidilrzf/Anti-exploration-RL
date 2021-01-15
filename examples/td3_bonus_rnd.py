@@ -115,7 +115,7 @@ def experiment(variant):
             output_size=feature_bonus,
             hidden_sizes=[M_bonus, M_bonus]).to(ptu.device)
 
-        checkpoint = torch.load(variant['bonus_path'], map_location=map_location)
+        checkpoint = torch.load(variant['bonus_path'], map_location=ptu.device)
         bonus_network.load_state_dict(checkpoint['network_state_dict'])
         bonus_target_network.load_state_dict(checkpoint['target_state_dict'])
         print('Loading bonus model: {}'.format(variant['bonus_path']))
@@ -344,7 +344,6 @@ if __name__ == "__main__":
         # optionally set the GPU (default=False)
         ptu.set_gpu_mode(True, gpu_id=args.device_id)
         print('using gpu:{}'.format(args.device_id))
-        def map_location(storage, loc): return storage.cuda()
 
     else:
         map_location = 'cpu'
