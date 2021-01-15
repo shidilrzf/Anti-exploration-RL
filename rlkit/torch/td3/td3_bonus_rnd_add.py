@@ -237,12 +237,12 @@ class TD3_RND_ADD_Trainer(TorchTrainer):
             if self.use_bonus_policy:
                 self.eval_statistics.update(create_stats_ordered_dict(
                     'Actor Bonus',
-                    ptu.get_numpy(actor_bonus),
+                    ptu.get_numpy(self.beta * actor_bonus),
                 ))
             if self.use_bonus_critic:
                 self.eval_statistics.update(create_stats_ordered_dict(
                     'Critic Bonus',
-                    ptu.get_numpy(critic_bonus),
+                    ptu.get_numpy(self.beta * critic_bonus),
                 ))
         self._n_train_steps_total += 1
 
