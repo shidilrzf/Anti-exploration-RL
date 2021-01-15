@@ -11,8 +11,7 @@ from rlkit.torch.networks import FlattenMlp, TanhMlpPolicy
 
 # from rlkit.torch.sac.sac_cls import SAC_BonusTrainer
 
-from rlkit.torch.td3.td3_bonus_add import TD3_Bonus_ADD_Trainer
-from rlkit.torch.td3.td3_bonus_mlt import TD3_Bonus_MLT_Trainer
+from rlkit.torch.td3.td3_bonus_rnd_add import TD3_RND_ADD_Trainer
 from rlkit.torch.td3.td3 import TD3Trainer
 
 from rlkit.torch.networks import Mlp
@@ -167,7 +166,7 @@ def experiment(variant):
         print('Agent of type offline TD3 created')
 
     elif variant['bonus'] == 'bonus_add':
-        trainer = TD3_Bonus_ADD_Trainer(
+        trainer = TD3_RND_ADD_Trainer(
             policy=policy,
             qf1=qf1,
             qf2=qf2,
@@ -238,11 +237,11 @@ if __name__ == "__main__":
     # bonus
     parser.add_argument('--offline', action='store_true', default=False, help='offline TD3')
     parser.add_argument('--bonus', type=str, default='bonus_add', help='different type of bonus: bonus_add, bonus_mlt')  # Q + bonus or Q * bonus
-    parser.add_argument('--beta', default=0.25, type=float, help='beta for the bonus')
+    parser.add_argument('--beta', default=1, type=float, help='beta for the bonus')
     parser.add_argument("--root_path", type=str, default='/home/shideh/', help='path to the bonus model')
     parser.add_argument("--bonus_model", type=str, default=None, help='name of the bonus model')
     parser.add_argument('--bonus_type', type=str, default='actor-critic', help='use bonus in actor, critic or both')
-    parser.add_argument('--bonus_layer', default=256, type=int, help='layer size of the bonus model')
+    parser.add_argument('--bonus_layer', default=128, type=int, help='layer size of the bonus model')
     parser.add_argument('--bonus_feature', default=4, type=int, help='feature size of the bonus model')
     parser.add_argument('--normalize', action='store_true', default=True, help='use normalization in bonus')
     parser.add_argument('--reward_shift', default=None, type=int, help='minimum reward')
@@ -269,7 +268,7 @@ if __name__ == "__main__":
         offline=args.offline,
         bonus=args.bonus,
         bonus_path=bonus_path,
-        bonus_beta=args.beta,
+        bonus_beta=2e4 * args.beta,
         use_log=args.use_log,
         layer_size=256,
         bonus_layer_size=args.bonus_layer,
