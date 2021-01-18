@@ -117,9 +117,9 @@ class TD3_Bonus_MLT_Trainer(TorchTrainer):
         if self.normalize:
             obs = (obs - self.obs_mu) / self.obs_std
             # actions = (actions - self.actions_mu) / self.actions_std
-        with torch.no_grad():
-            data = torch.cat((obs, actions), dim=1)
-            bonus = self.bonus_network(data)
+        
+        data = torch.cat((obs, actions), dim=1)
+        bonus = self.bonus_network(data)
 
         return bonus
 

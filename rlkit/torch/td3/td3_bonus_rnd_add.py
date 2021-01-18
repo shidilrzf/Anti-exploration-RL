@@ -118,10 +118,10 @@ class TD3_RND_ADD_Trainer(TorchTrainer):
         if self.normalize:
             obs = (obs - self.obs_mu) / self.obs_std
             # actions = (actions - self.actions_mu) / self.actions_std
-        with torch.no_grad():
-            data = torch.cat((obs, actions), dim=1)
-            bonus = abs(self.bonus_network(data) - self.bonus_target_network(data))
-            bonus = torch.mean(bonus, -1).unsqueeze(-1)
+        
+        data = torch.cat((obs, actions), dim=1)
+        bonus = abs(self.bonus_network(data) - self.bonus_target_network(data))
+        bonus = torch.mean(bonus, -1).unsqueeze(-1)
 
         #
         return bonus

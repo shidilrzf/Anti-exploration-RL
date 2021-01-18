@@ -125,13 +125,13 @@ if __name__ == "__main__":
     network = Mlp(
         input_size=obs_dim + action_dim,
         output_size=args.feature_size,
-        hidden_sizes=[M, M, M, M],
+        hidden_sizes=[M, M],
     ).to(device)
 
     target_network = Mlp(
         input_size=obs_dim + action_dim,
         output_size=args.feature_size,
-        hidden_sizes=[M, M],
+        hidden_sizes=[M, M, M, M],
     ).to(device)
     for param in target_network.parameters():
         param.requires_grad = False
