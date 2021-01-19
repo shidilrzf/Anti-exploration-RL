@@ -156,7 +156,8 @@ class TD3_Bonus_ADD_Trainer(TorchTrainer):
 
         # use bonus in critic
         if self.use_bonus_critic:
-            critic_bonus = self._get_bonus(next_obs, noisy_next_actions)
+            with torch.no_grad():
+                critic_bonus = self._get_bonus(next_obs, noisy_next_actions)
             target_q_values = target_q_values + self.beta * critic_bonus
 
         q_target = self.reward_scale * rewards + (1. - terminals) * self.discount * target_q_values

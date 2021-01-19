@@ -116,8 +116,7 @@ class TD3_Bonus_MLT_Trainer(TorchTrainer):
     def _get_bonus(self, obs, actions):
         if self.normalize:
             obs = (obs - self.obs_mu) / self.obs_std
-            # actions = (actions - self.actions_mu) / self.actions_std
-        
+            # actions = (actions - self.actions_mu) / self.actions_std    
         data = torch.cat((obs, actions), dim=1)
         bonus = self.bonus_network(data)
 
@@ -149,7 +148,8 @@ class TD3_Bonus_MLT_Trainer(TorchTrainer):
 
         # use bonus in critic
         if self.use_bonus_critic:
-            critic_bonus = self._get_bonus(next_obs, noisy_next_actions)
+            with torch.no_grad():
+                critic_bonus = self._get_bonus(next_obs, noisy_next_actions)
             target_q_values = self.beta * critic_bonus * target_q_values
 
         q_target = self.reward_scale * rewards + (1. - terminals) * self.discount * target_q_values
