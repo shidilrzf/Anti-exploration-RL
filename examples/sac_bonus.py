@@ -329,6 +329,7 @@ if __name__ == "__main__":
             reward_scale=1,
             use_automatic_entropy_tuning=not args.no_automatic_entropy_tuning,),
     )
+    torch.manual_seed(args.seed)
 
     # initialize with bc
     if args.bc_model is not None:

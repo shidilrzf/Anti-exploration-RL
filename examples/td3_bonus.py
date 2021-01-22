@@ -142,6 +142,8 @@ def experiment(variant):
     else:
         bonus_norm_param = [None] * 2
 
+    print('............')
+    print(variant['reward_shift'])
     # shift the reward
     if variant['reward_shift'] is not None:
         rewards_shift_param = min(dataset['rewards']) - variant['reward_shift']
@@ -300,6 +302,8 @@ if __name__ == "__main__":
             hidden_sizes=[400, 300],
         ),
     )
+    # set the seed
+    torch.manual_seed(args.seed)
 
     # timestapms
     t = time.localtime()

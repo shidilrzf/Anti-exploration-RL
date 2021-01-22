@@ -308,6 +308,8 @@ if __name__ == "__main__":
             hidden_sizes=[400, 300],
         ),
     )
+    # set the seed
+    torch.manual_seed(args.seed)
 
     # timestapms
     t = time.localtime()

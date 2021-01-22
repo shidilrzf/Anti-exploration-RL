@@ -63,7 +63,8 @@ if __name__ == "__main__":
     parser.add_argument("--gpu", default='0', type=str)
     # network
     parser.add_argument('--layer_size', default=128, type=int)
-    parser.add_argument('--feature_size', default=64, type=int)
+    parser.add_argument('--feature_size', default=16, type=int)
+    parser.add_argument('--embed_size', default=32, type=int)
     # Optimizer
     parser.add_argument('--epochs', type=int, default=200, metavar='N', help='number of training epochs')
     parser.add_argument('--lr', type=float, default=3e-4, help='Learning rate (default: 2e-4')
@@ -79,6 +80,7 @@ if __name__ == "__main__":
     env = gym.make(args.env)
     obs_dim = env.observation_space.low.size
     action_dim = env.action_space.low.size
+    print('env:{}, action_dim:{}, obs_dim:{}'.format(args.env, action_dim, obs_dim))
 
     # timestamps
     t = time.localtime()
@@ -130,14 +132,14 @@ if __name__ == "__main__":
     # ).to(device)
     network = Mlp_embedding(
         input_sizes=[obs_dim, action_dim],
-        embedding_sizes=[32, 32],
+        embedding_sizes=[args.embed_size, args.embed_size],
         output_size=args.feature_size,
         hidden_sizes=[M, M],
     ).to(device)
 
     target_network = Mlp_embedding(
         input_sizes=[obs_dim, action_dim],
-        embedding_sizes=[32, 32],
+        embedding_sizes=[args.embed_size, args.embed_size],
         output_size=args.feature_size,
         hidden_sizes=[M, M, M, M],
     ).to(device)
@@ -150,6 +152,19 @@ if __name__ == "__main__":
     for param in target_network.parameters():
         param.requires_grad = False
     optimizer = optim.Adam(network.parameters(), lr=args.lr)
+
+    # save the params
+    variant = dict(
+        env=args.env,
+        layer_size=args.layer_size,
+        feature_size=args.feature_size,
+        embed_size=args.embed_size,
+        lr=args.lr,
+        use_norm=args.use_norm,
+        batch_size=args.batch_size,
+        seed=args.seed,)
+
+    print(variant)
 
     best_loss = np.Inf
     for epoch in range(args.epochs):
@@ -168,5 +183,6 @@ if __name__ == "__main__":
                 'network_state_dict': network.state_dict(),
                 'target_state_dict': target_network.state_dict(),
                 'optimizer_state_dict': optimizer.state_dict(),
-                'train_loss': t_loss
+                'train_loss': t_loss,
+                'variant': variant
             }, file_name)
