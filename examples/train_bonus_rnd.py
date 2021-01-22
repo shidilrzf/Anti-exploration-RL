@@ -1,5 +1,5 @@
 from gym.envs.mujoco import HalfCheetahEnv
-from rlkit.torch.networks import Mlp
+from rlkit.torch.networks import Mlp, Mlp_embedding
 
 import gym
 import d4rl
@@ -34,12 +34,12 @@ def train(network, target_network, dataloader, optimizer, epoch, use_cuda):
         obs = obs.cuda() if use_cuda else obs
         act = act.cuda() if use_cuda else act
 
-        data = torch.cat((obs, act), dim=1)
+        # data = torch.cat((obs, act), dim=1)
 
-        predicted = network(data)
+        predicted = network(obs, act)
 
         with torch.no_grad():
-            target = target_network(data)
+            target = target_network(obs, act)
 
         loss = loss_func(predicted, target.detach())
 
@@ -118,21 +118,35 @@ if __name__ == "__main__":
     # Logger
     use_tb = False
     if use_tb:
+        log_dir = 'runs/'
         logger = SummaryWriter(comment='_' + args.env + '_rnd')
 
     # prepare networks
     M = args.layer_size
-    network = Mlp(
-        input_size=obs_dim + action_dim,
+    # network = Mlp(
+    #     input_size=obs_dim + action_dim,
+    #     output_size=args.feature_size,
+    #     hidden_sizes=[M, M],
+    # ).to(device)
+    network = Mlp_embedding(
+        input_sizes=[obs_dim, action_dim],
+        embedding_sizes=[32, 32],
         output_size=args.feature_size,
         hidden_sizes=[M, M],
     ).to(device)
 
-    target_network = Mlp(
-        input_size=obs_dim + action_dim,
+    target_network = Mlp_embedding(
+        input_sizes=[obs_dim, action_dim],
+        embedding_sizes=[32, 32],
         output_size=args.feature_size,
         hidden_sizes=[M, M, M, M],
     ).to(device)
+
+    # target_network = Mlp(
+    #     input_size=obs_dim + action_dim,
+    #     output_size=args.feature_size,
+    #     hidden_sizes=[M, M, M, M],
+    # ).to(device)
     for param in target_network.parameters():
         param.requires_grad = False
     optimizer = optim.Adam(network.parameters(), lr=args.lr)
