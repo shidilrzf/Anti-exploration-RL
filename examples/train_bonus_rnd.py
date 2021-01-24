@@ -132,14 +132,14 @@ if __name__ == "__main__":
     # ).to(device)
     network = Mlp_embedding(
         input_sizes=[obs_dim, action_dim],
-        embedding_sizes=[args.embed_size, args.embed_size],
+        embedding_sizes=[args.embed_size // 2, args.embed_size],
         output_size=args.feature_size,
         hidden_sizes=[M, M],
     ).to(device)
 
     target_network = Mlp_embedding(
         input_sizes=[obs_dim, action_dim],
-        embedding_sizes=[args.embed_size, args.embed_size],
+        embedding_sizes=[args.embed_size // 2, args.embed_size],
         output_size=args.feature_size,
         hidden_sizes=[M, M, M, M],
     ).to(device)
