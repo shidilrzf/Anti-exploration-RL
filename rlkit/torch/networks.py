@@ -21,9 +21,9 @@ from rlkit.torch.modules import LayerNorm
 class Mlp(nn.Module):
     def __init__(
             self,
+            input_size,
             hidden_sizes,
             output_size,
-            input_size,
             init_w=3e-3,
             hidden_activation=F.relu,
             output_activation=nn.Identity(),
@@ -81,10 +81,10 @@ class Mlp(nn.Module):
 class Mlp_embedding(nn.Module):
     def __init__(
             self,
-            hidden_sizes,
-            embedding_sizes,
-            output_size,
             input_sizes,
+            embedding_sizes,
+            hidden_sizes,
+            output_size,
             init_w=3e-3,
             hidden_activation=F.relu,
             output_activation=nn.Identity(),
@@ -193,3 +193,21 @@ class TanhMlpPolicy(MlpPolicy):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, output_activation=torch.tanh, **kwargs)
+
+
+class AE(nn.Module):
+    """
+    Simple AE model
+    """
+
+    def __init__(self, input_sizes, embedding_sizes, hidden_sizes, latent_size):
+        super(AE, self).__init__()
+
+        self.obs_sz, self.act_sz = input_sizes[0], input_sizes[1]
+        self.encoder = Mlp_embedding(input_sizes, embedding_sizes, hidden_sizes, latent_size)
+        self.decoder = MLP(latent_size, hidden_sizes, self.act_sz)
+
+    def forward(self, obs, act):
+        z = self.encode(obs, act)
+        act_hat = self.decode(z)
+        return act_hat
