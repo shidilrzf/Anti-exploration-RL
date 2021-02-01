@@ -195,6 +195,23 @@ class TanhMlpPolicy(MlpPolicy):
         super().__init__(*args, output_activation=torch.tanh, **kwargs)
 
 
+# class AE(nn.Module):
+#     """
+#     Simple AE model
+#     """
+
+#     def __init__(self, input_sizes, embedding_sizes, hidden_sizes, latent_size):
+#         super(AE, self).__init__()
+
+#         self.obs_sz, self.act_sz = input_sizes[0], input_sizes[1]
+#         self.encoder = Mlp_embedding(input_sizes, embedding_sizes, hidden_sizes, latent_size)
+#         self.decoder = Mlp(latent_size, hidden_sizes, self.act_sz)
+
+#     def forward(self, obs, act):
+#         z = self.encoder(obs, act)
+#         act_hat = self.decoder(z)
+#         return act_hat
+
 class AE(nn.Module):
     """
     Simple AE model
@@ -205,9 +222,11 @@ class AE(nn.Module):
 
         self.obs_sz, self.act_sz = input_sizes[0], input_sizes[1]
         self.encoder = Mlp_embedding(input_sizes, embedding_sizes, hidden_sizes, latent_size)
-        self.decoder = MLP(latent_size, hidden_sizes, self.act_sz)
+        self.act_decoder = Mlp(latent_size, hidden_sizes, self.act_sz)
+        self.obs_decoder = Mlp(latent_size, hidden_sizes, self.obs_sz)
 
     def forward(self, obs, act):
-        z = self.encode(obs, act)
-        act_hat = self.decode(z)
-        return act_hat
+        z = self.encoder(obs, act)
+        act_hat = self.act_decoder(z)
+        obs_hat = self.obs_decoder(z)
+        return act_hat, obs_hat
