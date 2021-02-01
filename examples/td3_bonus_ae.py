@@ -116,7 +116,7 @@ def experiment(variant):
         else:
             raise ValueError('Not implemented error')
 
-        checkpoint = torch.load(variant['bonus_path'])
+        checkpoint = torch.load(variant['bonus_path'], map_location=ptu.device)
         bonus_network.load_state_dict(checkpoint['network_state_dict'])
         print('Loading bonus model: {}'.format(variant['bonus_path']))
 
@@ -331,7 +331,7 @@ if __name__ == "__main__":
         # optionally set the GPU (default=False)
         ptu.set_gpu_mode(True, gpu_id=args.device_id)
         print('using gpu:{}'.format(args.device_id))
-        # def map_location(storage, loc): return storage.cuda()
+        def map_location(storage, loc): return storage.cuda()
 
     else:
         map_location = 'cpu'
