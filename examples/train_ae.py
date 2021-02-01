@@ -1,5 +1,5 @@
 from gym.envs.mujoco import HalfCheetahEnv
-from rlkit.torch.networks import AE
+from rlkit.torch.networks import AE, AE_conditional
 
 import gym
 import d4rl
@@ -36,9 +36,9 @@ def train(network, dataloader, optimizer, epoch, use_cuda):
 
         # data = torch.cat((obs, act), dim=1)
 
-        predicted_act, predicted_obs = network(obs, act)
+        predicted_act = network(obs, act)
 
-        loss = loss_func(predicted_act, act) + loss_func(predicted_obs, obs)
+        loss = loss_func(predicted_act, act)
 
         network.zero_grad()
         loss.backward()
@@ -59,9 +59,11 @@ if __name__ == "__main__":
     parser.add_argument("--env", type=str, default='halfcheetah-medium-v0')
     parser.add_argument("--gpu", default='0', type=str)
     # network
+    parser.add_argument('--network', type=str, default='AE_cond', help='type of AE')
     parser.add_argument('--layer_size', default=128, type=int)
     parser.add_argument('--latent_size', default=128, type=int)
-    parser.add_argument('--embed_size', default=32, type=int)
+    parser.add_argument('--act_embed_size', default=32, type=int)
+    parser.add_argument('--obs_embed_size', default=32, type=int)
     # Optimizer
     parser.add_argument('--epochs', type=int, default=200, metavar='N', help='number of training epochs')
     parser.add_argument('--lr', type=float, default=3e-4, help='Learning rate (default: 2e-4')
@@ -122,21 +124,34 @@ if __name__ == "__main__":
 
     # prepare networks
     M = args.layer_size
-    network = AE(
-        input_sizes=[obs_dim, action_dim],
-        embedding_sizes=[args.embed_size, args.embed_size],
-        latent_size=args.latent_size,
-        hidden_sizes=[M, M],
-    ).to(device)
+
+    if args.network == 'AE_cond':
+        network = AE_conditional(
+            input_sizes=[obs_dim, action_dim],
+            embedding_sizes=[args.obs_embed_size, args.act_embed_size],
+            hidden_sizes=[M, M],
+        ).to(device)
+
+    elif args.network == 'AE':
+        network = AE(
+            input_sizes=[obs_dim, action_dim],
+            embedding_sizes=[args.obs_embed_size, args.act_embed_size],
+            latent_size=args.latent_size,
+            hidden_sizes=[M, M],
+        ).to(device)
+    else:
+        raise ValueError('Not implemented error')
 
     optimizer = optim.Adam(network.parameters(), lr=args.lr)
 
     # save the params
     variant = dict(
         env=args.env,
+        AE_type=args.network,
         layer_size=args.layer_size,
         latent_size=args.latent_size,
-        embed_size=args.embed_size,
+        obs_embed_size=args.obs_embed_size,
+        act_embed_size=args.act_embed_size,
         lr=args.lr,
         use_norm=args.use_norm,
         batch_size=args.batch_size,
