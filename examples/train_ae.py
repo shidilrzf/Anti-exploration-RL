@@ -1,5 +1,5 @@
 from gym.envs.mujoco import HalfCheetahEnv
-from rlkit.torch.networks import AE, AE_conditional
+from rlkit.torch.networks import Conditional_AE, Emdedding_AE
 
 import gym
 import d4rl
@@ -59,10 +59,10 @@ if __name__ == "__main__":
     parser.add_argument("--env", type=str, default='halfcheetah-medium-v0')
     parser.add_argument("--gpu", default='0', type=str)
     # network
-    parser.add_argument('--network', type=str, default='AE_cond', help='type of AE')
+    parser.add_argument('--network', type=str, default='Conditional_AE', help='type of AE')
     parser.add_argument('--layer_size', default=128, type=int)
-    parser.add_argument('--latent_size', default=128, type=int)
-    parser.add_argument('--act_embed_size', default=32, type=int)
+    parser.add_argument('--latent_size', default=32, type=int)
+    parser.add_argument('--act_embed_size', default=64, type=int)
     parser.add_argument('--obs_embed_size', default=32, type=int)
     # Optimizer
     parser.add_argument('--epochs', type=int, default=200, metavar='N', help='number of training epochs')
@@ -125,15 +125,15 @@ if __name__ == "__main__":
     # prepare networks
     M = args.layer_size
 
-    if args.network == 'AE_cond':
-        network = AE_conditional(
+    if args.network == 'Emdedding_AE':
+        network = Emdedding_AE(
             input_sizes=[obs_dim, action_dim],
             embedding_sizes=[args.obs_embed_size, args.act_embed_size],
             hidden_sizes=[M, M],
         ).to(device)
 
-    elif args.network == 'AE':
-        network = AE(
+    elif args.network == 'Conditional_AE':
+        network = Conditional_AE(
             input_sizes=[obs_dim, action_dim],
             embedding_sizes=[args.obs_embed_size, args.act_embed_size],
             latent_size=args.latent_size,

@@ -212,7 +212,7 @@ class TanhMlpPolicy(MlpPolicy):
 #         act_hat = self.decoder(z)
 #         return act_hat
 
-class AE(nn.Module):
+class Conditional_AE(nn.Module):
     """
     Simple AE model
     """
@@ -232,7 +232,7 @@ class AE(nn.Module):
         return torch.tanh(act_hat)
 
 
-class AE_conditional(nn.Module):
+class Emdedding_AE(nn.Module):
     """
     Simple AE model
     """
