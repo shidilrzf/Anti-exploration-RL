@@ -11,7 +11,7 @@ from rlkit.torch.networks import FlattenMlp, TanhMlpPolicy, Conditional_AE, Emde
 
 # from rlkit.torch.sac.sac_cls import SAC_BonusTrainer
 
-from rlkit.torch.td3.td3_bonus_add import TD3_AE_ADD_Trainer
+from rlkit.torch.td3.td3_bonus_ae_add import TD3_AE_ADD_Trainer
 from rlkit.torch.td3.td3 import TD3Trainer
 from rlkit.torch.torch_rl_algorithm import TorchBatchRLAlgorithm
 
@@ -222,7 +222,7 @@ if __name__ == "__main__":
     parser.add_argument("--root_path", type=str, default='/home/shideh/', help='path to the bonus model')
     parser.add_argument("--bonus_model", type=str, default=None, help='name of the bonus model')
     parser.add_argument('--bonus_type', type=str, default='actor-critic', help='use bonus in actor, critic or both')
-    parser.add_argument('--bonus_layer', default=256, type=int, help='layer size of the bonus model')
+    parser.add_argument('--bonus_layer', default=128, type=int, help='layer size of the bonus model')
     parser.add_argument('--ae_network', type=str, default='Conditional_AE', help='type of AE')
     parser.add_argument('--latent_size', default=32, type=int)
     parser.add_argument('--act_embed_size', default=64, type=int)
