@@ -116,7 +116,7 @@ class TD3_AE_ADD_Trainer(TorchTrainer):
         if self.normalize:
             obs = (obs - self.obs_mu) / self.obs_std
             # actions = (actions - self.actions_mu) / self.actions_std
-        action_hat = self.bonus_network(obs, actions)
+        action_hat, _, _ = self.bonus_network(obs, actions)
         bonus = (abs(action_hat - actions)).mean(dim=-1).unsqueeze(-1)
 
         return bonus

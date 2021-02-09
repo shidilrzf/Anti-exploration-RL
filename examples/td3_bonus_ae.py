@@ -7,7 +7,7 @@ from rlkit.launchers.launcher_util import setup_logger
 from rlkit.samplers.data_collector import MdpPathCollector, CustomMDPPathCollector
 
 
-from rlkit.torch.networks import FlattenMlp, TanhMlpPolicy, Conditional_AE, Emdedding_AE
+from rlkit.torch.networks import FlattenMlp, TanhMlpPolicy, Conditional_AE, Emdedding_AE, VAE
 
 # from rlkit.torch.sac.sac_cls import SAC_BonusTrainer
 
@@ -25,35 +25,15 @@ import torch
 import time
 
 
-def load_hdf5(dataset, replay_buffer, max_size):
-    all_obs = dataset['observations']
-    all_act = dataset['actions']
-    N = min(all_obs.shape[0], max_size)
-
-    _obs = all_obs[:N - 1]
-    _actions = all_act[:N - 1]
-    _next_obs = all_obs[1:]
-    _rew = np.squeeze(dataset['rewards'][:N - 1])
-    _rew = np.expand_dims(np.squeeze(_rew), axis=-1)
-    _done = np.squeeze(dataset['terminals'][:N - 1])
-    _done = (np.expand_dims(np.squeeze(_done), axis=-1)).astype(np.int32)
-
-    max_length = 1000
-    ctr = 0
-    # Only for MuJoCo environments
-    # Handle the condition when terminal is not True and trajectory ends due to a timeout
-    for idx in range(_obs.shape[0]):
-        if ctr >= max_length - 1:
-            ctr = 0
-        else:
-            replay_buffer.add_sample_only(
-                _obs[idx], _actions[idx], _rew[idx], _next_obs[idx], _done[idx])
-            ctr += 1
-            if _done[idx][0]:
-                ctr = 0
-    ###
-
-    print (replay_buffer._size, replay_buffer._terminals.shape)
+def load_hdf5(dataset, replay_buffer):
+    replay_buffer._observations = dataset['observations']
+    replay_buffer._next_obs = dataset['next_observations']
+    replay_buffer._actions = dataset['actions']
+    replay_buffer._rewards = np.expand_dims(np.squeeze(dataset['rewards']), 1)
+    replay_buffer._terminals = np.expand_dims(np.squeeze(dataset['terminals']), 1)
+    replay_buffer._size = dataset['terminals'].shape[0]
+    print ('Number of terminals on: ', replay_buffer._terminals.sum())
+    replay_buffer._top = replay_buffer._size
 
 
 def experiment(variant):
@@ -97,26 +77,17 @@ def experiment(variant):
 
     # if bonus: define bonus networks
     if not variant['offline']:
-        bonus_layer_size = variant['bonus_layer_size']
 
-        if variant['ae_network'] == 'Emdedding_AE':
-            bonus_network = Emdedding_AE(
+        if variant['ae_network'] == 'VAE':
+            bonus_network = VAE(
                 input_sizes=[obs_dim, action_dim],
-                embedding_sizes=[args.obs_embed_size, args.act_embed_size],
-                hidden_sizes=[bonus_layer_size, bonus_layer_size],
-            ).to(ptu.device)
-
-        elif variant['ae_network'] == 'Conditional_AE':
-            bonus_network = Conditional_AE(
-                input_sizes=[obs_dim, action_dim],
-                embedding_sizes=[args.obs_embed_size, args.act_embed_size],
                 latent_size=args.latent_size,
-                hidden_sizes=[bonus_layer_size, bonus_layer_size],
             ).to(ptu.device)
+
         else:
             raise ValueError('Not implemented error')
 
-        checkpoint = torch.load(variant['bonus_path'], map_location=map_location)
+        checkpoint = torch.load(variant['bonus_path'], map_location=ptu.device)
         bonus_network.load_state_dict(checkpoint['network_state_dict'])
         print('Loading bonus model: {}'.format(variant['bonus_path']))
 
@@ -137,9 +108,8 @@ def experiment(variant):
         expl_env,
     )
 
-    dataset = eval_env.unwrapped.get_dataset()
-
-    load_hdf5(dataset, replay_buffer, max_size=variant['replay_buffer_size'])
+    dataset = d4rl.qlearning_dataset(eval_env)
+    load_hdf5(dataset, replay_buffer)
 
     if variant['normalize']:
         obs_mu, obs_std = dataset['observations'].mean(axis=0), dataset['observations'].std(axis=0)
@@ -223,10 +193,10 @@ if __name__ == "__main__":
     parser.add_argument("--bonus_model", type=str, default=None, help='name of the bonus model')
     parser.add_argument('--bonus_type', type=str, default='actor-critic', help='use bonus in actor, critic or both')
     parser.add_argument('--bonus_layer', default=128, type=int, help='layer size of the bonus model')
-    parser.add_argument('--ae_network', type=str, default='Conditional_AE', help='type of AE')
-    parser.add_argument('--latent_size', default=32, type=int)
-    parser.add_argument('--act_embed_size', default=64, type=int)
-    parser.add_argument('--obs_embed_size', default=32, type=int)
+    parser.add_argument('--ae_network', type=str, default='VAE', help='type of AE')
+    parser.add_argument('--latent_size', default=12, type=int)
+    parser.add_argument('--act_embed_size', default=16, type=int)
+    parser.add_argument('--obs_embed_size', default=16, type=int)
     parser.add_argument('--normalize', action='store_true', default=True, help='use normalization in bonus')
     parser.add_argument('--reward_shift', default=None, type=int, help='minimum reward')
     parser.add_argument('--use_log', action='store_true', default=False, help='use log(bonus(s, a) otherwise bonus(s, a)')
@@ -252,7 +222,7 @@ if __name__ == "__main__":
         offline=args.offline,
         bonus=args.bonus,
         bonus_path=bonus_path,
-        bonus_beta=1e3 * args.beta,
+        bonus_beta=10 * args.beta,
         use_log=args.use_log,
         # ae
         ae_network=args.ae_network,
@@ -331,7 +301,7 @@ if __name__ == "__main__":
         # optionally set the GPU (default=False)
         ptu.set_gpu_mode(True, gpu_id=args.device_id)
         print('using gpu:{}'.format(args.device_id))
-        map_location=lambda storage, loc: storage.cuda()
+        # map_location=lambda storage, loc: storage.cuda()
 
     else:
         map_location = 'cpu'
