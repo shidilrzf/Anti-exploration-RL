@@ -1,5 +1,5 @@
 from gym.envs.mujoco import HalfCheetahEnv
-from rlkit.torch.networks import Conditional_AE, Emdedding_AE
+from rlkit.torch.networks import Conditional_AE, Emdedding_AE, VAE
 
 import gym
 import d4rl
@@ -9,6 +9,7 @@ import argparse
 import torch
 import torch.optim as optim
 import torch.nn as nn
+import torch.nn.functional as F
 from torch.utils.data import TensorDataset, DataLoader
 
 
@@ -20,7 +21,7 @@ import time
 
 def train(network, dataloader, optimizer, epoch, use_cuda):
 
-    loss_func = nn.MSELoss(reduction='mean')
+    # loss_func = nn.MSELoss(reduction='sum')
 
     network.train()
     desc = 'Train'
@@ -36,9 +37,14 @@ def train(network, dataloader, optimizer, epoch, use_cuda):
 
         # data = torch.cat((obs, act), dim=1)
 
-        predicted_act = network(obs, act)
-
-        loss = loss_func(predicted_act, act)
+        if args.network == 'VAE':
+            predicted_act, mean, std = network(obs, act)
+            recon_loss = F.mse_loss(predicted_act, act)
+            KL_loss = - 0.5 * (1 + torch.log(std.pow(2)) - mean.pow(2) - std.pow(2)).mean()
+            loss = recon_loss + 0.5 * KL_loss
+        else:
+            predicted_act = network(obs, act)
+            loss = F.mse_loss(predicted_act, act)
 
         network.zero_grad()
         loss.backward()
@@ -55,19 +61,18 @@ def train(network, dataloader, optimizer, epoch, use_cuda):
 
 if __name__ == "__main__":
 
-    parser = argparse.ArgumentParser(description='sac_d4rl')
+    parser = argparse.ArgumentParser(description='AE')
     parser.add_argument("--env", type=str, default='halfcheetah-medium-v0')
-    parser.add_argument("--gpu", default='0', type=str)
     # network
     parser.add_argument('--network', type=str, default='Conditional_AE', help='type of AE')
-    parser.add_argument('--layer_size', default=128, type=int)
-    parser.add_argument('--latent_size', default=32, type=int)
-    parser.add_argument('--act_embed_size', default=64, type=int)
-    parser.add_argument('--obs_embed_size', default=32, type=int)
+    parser.add_argument('--layer_size', default=750, type=int)
+    parser.add_argument('--latent_size', default=12, type=int)
+    parser.add_argument('--act_embed_size', default=16, type=int)
+    parser.add_argument('--obs_embed_size', default=16, type=int)
     # Optimizer
-    parser.add_argument('--epochs', type=int, default=200, metavar='N', help='number of training epochs')
-    parser.add_argument('--lr', type=float, default=3e-4, help='Learning rate (default: 2e-4')
-    parser.add_argument('--batch-size', type=int, default=256, metavar='N', help='input training batch-size')
+    parser.add_argument('--epochs', type=int, default=50, metavar='N', help='number of training epochs')
+    parser.add_argument('--lr', type=float, default=1e-4, help='Learning rate (default: 2e-4')
+    parser.add_argument('--batch-size', type=int, default=100, metavar='N', help='input training batch-size')
     parser.add_argument('--seed', default=0, type=int)
     # normalization
     parser.add_argument('--use_norm', action='store_true', default=False, help='use norm')
@@ -86,7 +91,8 @@ if __name__ == "__main__":
     timestamp = time.strftime('%b-%d-%Y_%H%M', t)
 
     # preparing data and dataset
-    ds = env.get_dataset()
+    # ds = env.get_dataset()
+    ds = d4rl.qlearning_dataset(env)
     obs = ds['observations']
     actions = ds['actions']
     if args.use_norm:
@@ -122,6 +128,14 @@ if __name__ == "__main__":
         log_dir = 'runs/'
         logger = SummaryWriter(comment='_' + args.env + '_rnd')
 
+    # parameters
+    variant = dict(
+        env=args.env,
+        AE_type=args.network,
+        lr=args.lr,
+        use_norm=args.use_norm,
+        batch_size=args.batch_size,
+        seed=args.seed,)
     # prepare networks
     M = args.layer_size
 
@@ -131,6 +145,9 @@ if __name__ == "__main__":
             embedding_sizes=[args.obs_embed_size, args.act_embed_size],
             hidden_sizes=[M, M],
         ).to(device)
+        variant['obs_embed_size'] = args.obs_embed_size
+        variant['act_embed_size'] = args.act_embed_size
+        variant['hidden_size'] = M
 
     elif args.network == 'Conditional_AE':
         network = Conditional_AE(
@@ -139,23 +156,23 @@ if __name__ == "__main__":
             latent_size=args.latent_size,
             hidden_sizes=[M, M],
         ).to(device)
+
+        variant['obs_embed_size'] = args.obs_embed_size
+        variant['act_embed_size'] = args.act_embed_size
+        variant['latent_size'] = args.latent_size
+        variant['hidden_size'] = M
+
+    elif args.network == 'VAE':
+        network = VAE(
+            input_sizes=[obs_dim, action_dim],
+            latent_size=args.latent_size,
+        ).to(device)
+        variant['latent_size'] = args.latent_size
+
     else:
         raise ValueError('Not implemented error')
 
     optimizer = optim.Adam(network.parameters(), lr=args.lr)
-
-    # save the params
-    variant = dict(
-        env=args.env,
-        AE_type=args.network,
-        layer_size=args.layer_size,
-        latent_size=args.latent_size,
-        obs_embed_size=args.obs_embed_size,
-        act_embed_size=args.act_embed_size,
-        lr=args.lr,
-        use_norm=args.use_norm,
-        batch_size=args.batch_size,
-        seed=args.seed,)
 
     print(variant)
 

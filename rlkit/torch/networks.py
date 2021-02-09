@@ -255,26 +255,26 @@ class Emdedding_AE(nn.Module):
 
 
 class VAE(nn.Module):
-    def __init__(self, input_sizes, latent_dim, M=750):
+    def __init__(self, input_sizes, latent_size, M=750):
         super(VAE, self).__init__()
 
         obs_dim, action_dim = input_sizes[0], input_sizes[1]
-        self.latent_dim = latent_dim
+        self.latent_size = latent_size
 
         self.enc_fc1 = nn.Linear(obs_dim + action_dim, M)
         self.enc_fc2 = nn.Linear(M, M)
 
-        self.mean_fc = nn.Linear(M, latent_dim)
-        self.log_var_fc = nn.Linear(M, latent_dim)
+        self.mean_fc = nn.Linear(M, latent_size)
+        self.log_var_fc = nn.Linear(M, latent_size)
 
-        self.dec_fc1 = nn.Linear(obs_dim + latent_dim, M)
+        self.dec_fc1 = nn.Linear(obs_dim + latent_size, M)
         self.dec_fc2 = nn.Linear(M, M)
         self.dec_fc3 = nn.Linear(M, action_dim)
 
     def encode(self, obs, act):
 
-        h = torch.cat([obs, action], 1)
-        z = F.relu(self.enc_fc1())
+        h = torch.cat([obs, act], 1)
+        z = F.relu(self.enc_fc1(h))
         z = F.relu(self.enc_fc2(z))
 
         return z
@@ -282,7 +282,7 @@ class VAE(nn.Module):
     def decode(self, obs, z):
         h = torch.cat([obs, z], 1)
         h = F.relu(self.dec_fc1(h))
-        h = F.relu(self.dec_fc2(a))
+        h = F.relu(self.dec_fc2(h))
 
         return torch.tanh(self.dec_fc3(h))
 
@@ -295,6 +295,6 @@ class VAE(nn.Module):
         std = torch.exp(log_var)
         z = mean + std * torch.randn_like(std)
 
-        u = self.decode(obs, z)
+        act_hat = self.decode(obs, z)
 
-        return u, mean, std
+        return act_hat, mean, std
