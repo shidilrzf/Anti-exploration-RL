@@ -119,7 +119,7 @@ class TD3_AE_ADD_Trainer(TorchTrainer):
         action_hat, _, _ = self.bonus_network(obs, actions)
         bonus = (abs(action_hat - actions)).mean(dim=-1).unsqueeze(-1)
 
-        return bonus
+        return - bonus
 
     def train_from_torch(self, batch):
         rewards = batch['rewards']
