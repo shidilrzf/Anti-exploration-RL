@@ -19,13 +19,12 @@ class SAC_AETrainer(TorchTrainer):
             qf2,
             target_qf1,
             target_qf2,
-            rnd_network,
-            rnd_target_network,
+            bonus_network,
             beta,
-            use_rnd_critic,
-            use_rnd_policy,
+            use_bonus_critic,
+            use_bonus_policy,
 
-            rnd_norm_param,
+            norm_param,
             rewards_shift_param,
 
             device,
@@ -67,7 +66,7 @@ class SAC_AETrainer(TorchTrainer):
         self.normalize = self.obs_mu is not None
 
         if self.normalize:
-            print('.......Using normailization in rnd........')
+            print('.......Using normailization in bonus........')
             self.obs_mu = ptu.from_numpy(self.obs_mu).to(device)
             self.obs_std = ptu.from_numpy(self.obs_std).to(device)
 
@@ -158,8 +157,8 @@ class SAC_AETrainer(TorchTrainer):
             self.qf1(obs, new_obs_actions),
             self.qf2(obs, new_obs_actions),
         )
-        # use rnd in policy
-        if self.use_rnd_policy:
+        # use  in policy
+        if self.use_bonus_policy:
             actor_bonus = self._get_bonus(obs, new_obs_actions)
             q_new_actions = q_new_actions - actor_bonus
 
@@ -180,8 +179,8 @@ class SAC_AETrainer(TorchTrainer):
             self.target_qf2(next_obs, new_next_actions),
         ) - alpha * new_log_pi
 
-        # use rnd in critic
-        if self.use_rnd_critic:
+        # use  in critic
+        if self.use_bonus_critic:
             critic_bonus = self._get_bonus(next_obs, new_next_actions)
             target_q_values = target_q_values - critic_bonus
 
@@ -269,7 +268,7 @@ class SAC_AETrainer(TorchTrainer):
                     'Critic Bonus',
                     ptu.get_numpy(self.beta * critic_bonus),
                 ))
-    
+
         self._n_train_steps_total += 1
 
     def get_diagnostics(self):
