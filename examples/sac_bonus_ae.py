@@ -191,9 +191,8 @@ def experiment(variant):
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description='sac_bonus')
-    parser.add_argument("--env", type=str, default='halfcheetah-medium-v0')
+    parser.add_argument("--env", type=str, default='walker2d-medium-v0')
     # sac
-    parser.add_argument('--alpha_lr', default=3e-5, type=float)
     parser.add_argument('--qf_lr', default=3e-4, type=float)
     parser.add_argument('--policy_lr', default=1e-4, type=float)
     parser.add_argument('--num_samples', default=100, type=int)
@@ -237,8 +236,10 @@ if __name__ == "__main__":
         bonus=args.bonus,
         bonus_path=bonus_path,
         bonus_beta=10 * args.beta,
+        ae_network=args.ae_network,
         use_log=args.use_log,
         replay_buffer_size=int(1E6),
+        layer_size=256,
         buffer_filename=args.env,  # halfcheetah_101000.pkl',
         load_buffer=True,
         env_name=args.env,
@@ -270,7 +271,6 @@ if __name__ == "__main__":
             target_update_period=1,
             policy_lr=args.policy_lr,
             qf_lr=args.qf_lr,
-            alpha_lr=args.alpha_lr,
             reward_scale=1,
             use_automatic_entropy_tuning=not args.no_automatic_entropy_tuning,),
     )

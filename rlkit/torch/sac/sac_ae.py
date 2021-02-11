@@ -24,6 +24,8 @@ class SAC_AETrainer(TorchTrainer):
             use_bonus_critic,
             use_bonus_policy,
 
+            use_log,
+
             norm_param,
             rewards_shift_param,
 
@@ -60,6 +62,8 @@ class SAC_AETrainer(TorchTrainer):
         # type of adding bonus to critic or policy
         self.use_bonus_critic = use_bonus_critic
         self.use_bonus_policy = use_bonus_policy
+
+        self.use_log = use_log
 
         # normlization
         self.obs_mu, self.obs_std = norm_param

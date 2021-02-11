@@ -21,9 +21,9 @@ from rlkit.torch.modules import LayerNorm
 class Mlp(nn.Module):
     def __init__(
             self,
-            input_size,
             hidden_sizes,
             output_size,
+            input_size,
             init_w=3e-3,
             hidden_activation=F.relu,
             output_activation=nn.Identity(),
@@ -222,7 +222,7 @@ class Conditional_AE(nn.Module):
 
         self.obs_sz, self.act_sz = input_sizes[0], input_sizes[1]
         self.encoder = Mlp_embedding(input_sizes, embedding_sizes, hidden_sizes, latent_size)
-        self.decoder = Mlp(latent_size + self.obs_sz, hidden_sizes, self.act_sz)
+        self.decoder = Mlp(input_size=latent_size + self.obs_sz, hidden_sizes=hidden_sizes, output_size=self.act_sz)
 
     def forward(self, obs, act):
         z = self.encoder(obs, act)
@@ -241,9 +241,9 @@ class Emdedding_AE(nn.Module):
         super().__init__()
 
         self.obs_sz, self.act_sz = input_sizes[0], input_sizes[1]
-        self.obs_embedding = Mlp(self.obs_sz, hidden_sizes, embedding_sizes[0])
-        self.act_embedding = Mlp(self.act_sz, hidden_sizes, embedding_sizes[1])
-        self.decoder = Mlp(embedding_sizes[0] + embedding_sizes[1], hidden_sizes, self.act_sz)
+        self.obs_embedding = Mlp(input_size=self.obs_sz, hidden_sizes=hidden_sizes, output_size=embedding_sizes[0])
+        self.act_embedding = Mlp(input_size=self.act_sz, hidden_sizes=hidden_sizes, output_size=embedding_sizes[1])
+        self.decoder = Mlp(input_size=embedding_sizes[0] + embedding_sizes[1], hidden_sizes=hidden_sizes, output_size=self.act_sz)
 
     def forward(self, obs, act):
         z_obs = self.obs_embedding(obs)
