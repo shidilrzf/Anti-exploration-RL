@@ -12,7 +12,8 @@ logs/
 *.pkl
 *.png
 
-.DS_Store
+.DS_Stor
+.vscode/
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
