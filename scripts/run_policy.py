@@ -15,7 +15,9 @@ def simulate_policy(args):
     policy = data['trainer/policy']
     env = data['evaluation/env']
     print("Policy loaded")
-    if args.gpu:
+    use_cuda = not args.no_cuda and torch.cuda.is_available()
+
+    if use_cuda:
         ptu.set_gpu_mode(True, gpu_id=args.device_id)
         policy.to(ptu.device)
     paths = []
@@ -41,7 +43,7 @@ if __name__ == "__main__":
     parser.add_argument('--H', type=int, default=300,
                         help='Max length of rollout')
     parser.add_argument('--seed', default=10, type=int)
-    parser.add_argument('--gpu', action='store_true', default=True)
+    parser.add_argument('--no-cuda', action='store_true', default=False, help='disables cuda (default: False')
     parser.add_argument('--device-id', type=int, default=6, help='GPU device id (default: 6')
     args = parser.parse_args()
     args.file = pathlib.Path(__file__).parent / '../examples/logs/{}/params.pkl'.format(args.file)
