@@ -257,7 +257,7 @@ if __name__ == "__main__":
         reward_shift=args.reward_shift,
 
         algorithm_kwargs=dict(
-            num_epochs=3000,
+            num_epochs=2000,
             num_eval_steps_per_epoch=5000,
             num_trains_per_train_loop=1000,
             num_expl_steps_per_train_loop=1000,
