@@ -192,6 +192,8 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description='sac_bonus')
     parser.add_argument("--env", type=str, default='walker2d-medium-v0')
+    parser.add_argument('--num_epochs', default=2000, type=int)
+
     # sac
     parser.add_argument('--qf_lr', default=3e-4, type=float)
     parser.add_argument('--policy_lr', default=1e-4, type=float)
@@ -257,7 +259,7 @@ if __name__ == "__main__":
         reward_shift=args.reward_shift,
 
         algorithm_kwargs=dict(
-            num_epochs=2000,
+            num_epochs=args.num_epochs,
             num_eval_steps_per_epoch=5000,
             num_trains_per_train_loop=1000,
             num_expl_steps_per_train_loop=1000,
