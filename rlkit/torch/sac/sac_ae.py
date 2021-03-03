@@ -247,6 +247,10 @@ class SAC_AETrainer(TorchTrainer):
                 ptu.get_numpy(q_target),
             ))
             self.eval_statistics.update(create_stats_ordered_dict(
+                'Q New',
+                ptu.get_numpy(q_new_actions),
+            ))
+            self.eval_statistics.update(create_stats_ordered_dict(
                 'Log Pis',
                 ptu.get_numpy(log_pi),
             ))
