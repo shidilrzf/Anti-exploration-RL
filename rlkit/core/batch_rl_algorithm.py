@@ -2,7 +2,7 @@ import abc
 import copy
 # Visualization
 
-import matplotlib.pyplot as plt
+
 from rlkit.torch import pytorch_util as ptu
 
 import gtimer as gt
@@ -16,7 +16,8 @@ from rlkit.torch.core import np_to_pytorch_batch
 
 import torch
 import matplotlib
-matplotlib.use('Agg')
+matplotlib.use('agg')
+import matplotlib.pyplot as plt
 
 
 def get_flat_params(model):
