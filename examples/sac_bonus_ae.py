@@ -138,6 +138,8 @@ def experiment(variant):
     else:
         rewards_shift_param = None
 
+    reward_scale = 1/ ( max(dataset['rewards']) - min(dataset['rewards']) )
+
     if variant['offline']:
         trainer = SACTrainer(
             env=eval_env,
@@ -167,6 +169,7 @@ def experiment(variant):
             norm_param=bonus_norm_param,
             rewards_shift_param=rewards_shift_param,
             device=ptu.device,
+            reward_scale=reward_scale,
             **variant['trainer_kwargs']
         )
         print('Agent of type SAC + VAE additive bonus created')
@@ -204,7 +207,7 @@ if __name__ == "__main__":
     parser.add_argument('--offline', action='store_true', default=False, help='offline sac')
     parser.add_argument('--bonus', type=str, default='bonus_add', help='different type of bonus: bonus_add, bonus_mlt')  # Q + bonus or Q * bonus
     parser.add_argument('--beta', default=1, type=float, help='beta for the bonus')
-    parser.add_argument('--rho', default=10, type=float, help='beta for the bonus')
+    parser.add_argument('--rho', default=1, type=float, help='beta for the bonus')
 
     parser.add_argument("--root_path", type=str, default='/home/shideh/', help='path to the bonus model')
     parser.add_argument("--bonus_model", type=str, default=None, help='name of the bonus model')
@@ -275,7 +278,6 @@ if __name__ == "__main__":
             target_update_period=1,
             policy_lr=args.policy_lr,
             qf_lr=args.qf_lr,
-            reward_scale=1,
             use_automatic_entropy_tuning=not args.no_automatic_entropy_tuning,),
     )
     torch.manual_seed(args.seed)
