@@ -122,7 +122,8 @@ class SAC_AETrainer(TorchTrainer):
             obs = (obs - self.obs_mu) / self.obs_std
             # actions = (actions - self.actions_mu) / self.actions_std
         action_hat, _, _ = self.bonus_network(obs, actions)
-        bonus = self.beta * (abs(action_hat - actions)).mean(dim=-1).unsqueeze(-1)
+        # bonus = (abs(action_hat - actions)).mean(dim=-1).unsqueeze(-1)
+        bonus = (abs(action_hat - actions)**2).mean(dim=-1).unsqueeze(-1)
 
         if self.use_log:
             return torch.exp(bonus)
@@ -164,7 +165,7 @@ class SAC_AETrainer(TorchTrainer):
         # use  in policy
         if self.use_bonus_policy:
             actor_bonus = self._get_bonus(obs, new_obs_actions)
-            q_new_actions = q_new_actions - actor_bonus
+            q_new_actions = q_new_actions - self.beta * actor_bonus
 
         policy_loss = (alpha * log_pi - q_new_actions).mean()
 
@@ -186,7 +187,7 @@ class SAC_AETrainer(TorchTrainer):
         # use  in critic
         if self.use_bonus_critic:
             critic_bonus = self._get_bonus(next_obs, new_next_actions)
-            target_q_values = target_q_values - critic_bonus
+            target_q_values = target_q_values - self.beta * critic_bonus
 
         q_target = self.reward_scale * rewards + (1. - terminals) * self.discount * target_q_values
         qf1_loss = self.qf_criterion(q1_pred, q_target.detach())
@@ -269,12 +270,12 @@ class SAC_AETrainer(TorchTrainer):
             if self.use_bonus_policy:
                 self.eval_statistics.update(create_stats_ordered_dict(
                     'Actor Bonus',
-                    ptu.get_numpy(self.beta * actor_bonus),
+                    ptu.get_numpy(actor_bonus),
                 ))
             if self.use_bonus_critic:
                 self.eval_statistics.update(create_stats_ordered_dict(
                     'Critic Bonus',
-                    ptu.get_numpy(self.beta * critic_bonus),
+                    ptu.get_numpy(critic_bonus),
                 ))
 
         self._n_train_steps_total += 1
