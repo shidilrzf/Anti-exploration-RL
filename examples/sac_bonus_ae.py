@@ -200,6 +200,7 @@ if __name__ == "__main__":
     # sac
     parser.add_argument('--qf_lr', default=1e-4, type=float)
     parser.add_argument('--policy_lr', default=3e-4, type=float)
+    parser.add_argument('--alpha_lr', default=3e-4, type=float)
     parser.add_argument('--num_samples', default=100, type=int)
     parser.add_argument('--no_automatic_entropy_tuning', action='store_true', default=False, help='no automatic entropy tuning')
 
@@ -278,6 +279,7 @@ if __name__ == "__main__":
             target_update_period=1,
             policy_lr=args.policy_lr,
             qf_lr=args.qf_lr,
+            alpha_lr=args.alpha_lr,
             use_automatic_entropy_tuning=not args.no_automatic_entropy_tuning,),
     )
     torch.manual_seed(args.seed)
