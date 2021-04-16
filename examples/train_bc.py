@@ -1,5 +1,4 @@
 from gym.envs.mujoco import HalfCheetahEnv
-from rlkit.torch.networks import Mlp
 
 import gym
 import d4rl
@@ -8,10 +7,12 @@ import numpy as np
 import argparse
 import torch
 import torch.optim as optim
-import torch.nn as nn
-from torch.nn import functional as F
+# import torch.nn as nn
+# from torch.nn import functional as F
 
 from torch.utils.data import TensorDataset, DataLoader
+from rlkit.torch.sac.policies import TanhGaussianPolicy
+import rlkit.torch.pytorch_util as ptu
 
 
 from tensorboardX import SummaryWriter
@@ -20,33 +21,31 @@ import os
 import time
 
 
-def train(network, dataloader, optimizer, epoch, device):
+def train(policy, dataloader, optimizer, epoch, device):
 
-    loss_func = nn.MSELoss(reduction='sum')
-
-    network.train()
+    policy.train()
     desc = 'Train'
 
     tqdm_bar = tqdm(dataloader)
     total_loss = 0
-    for batch_idx, (obs, act) in enumerate(tqdm_bar):
+    for batch_idx, (obs, actions) in enumerate(tqdm_bar):
         batch_size = obs.size(0)
 
-        obs = obs.to(device)
-        act = act.to(device)
+        obs = obs.to(ptu.device)
+        actions = actions.to(ptu.device)
 
-        action_hat = network(obs)
+        _, _, _, log_pi, *_ = policy(obs, reparameterize=True, return_log_prob=True)
+        data_log_pi = policy.log_prob(obs, actions)
+        policy_loss = (log_pi - data_log_pi).mean()
 
-        loss = loss_func(action_hat, act)
-
-        network.zero_grad()
-        loss.backward()
+        policy.zero_grad()
+        policy_loss.backward()
         optimizer.step()
 
         # Reporting
-        total_loss += loss.item()
+        total_loss += policy_loss.item()
 
-        tqdm_bar.set_description('{} Epoch: [{}] Loss: {:.4f}'.format(desc, epoch, loss.item() / batch_size))
+        tqdm_bar.set_description('{} Epoch: [{}] Loss: {:.4f}'.format(desc, epoch, policy_loss.item() / batch_size))
 
     return total_loss / (len(dataloader.dataset))
 
@@ -55,9 +54,10 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description='bc')
     parser.add_argument("--env", type=str, default='walker2d-medium-v0')
-    parser.add_argument("--gpu", default='0', type=str)
-    # network
+    # policy
     parser.add_argument('--layer-size', default=256, type=int)
+    parser.add_argument('--mixture', action='store_true', default=False, help='use norm')
+
     # Optimizer
     parser.add_argument('--epochs', type=int, default=100, metavar='N', help='number of training epochs')
     parser.add_argument('--lr', type=float, default=1e-3, help='Learning rate (default: 2e-4')
@@ -105,11 +105,12 @@ if __name__ == "__main__":
 
     torch.manual_seed(args.seed)
     if use_cuda:
-        device = torch.device("cuda")
-        torch.cuda.set_device(args.device_id)
-        print('using GPU')
+        ptu.set_gpu_mode(True, gpu_id=args.device_id)
+        print('using gpu:{}'.format(args.device_id))
+
     else:
-        device = torch.device("cpu")
+        map_location = 'cpu'
+        ptu.set_gpu_mode(False)  
 
     # Setup asset directories
     if not os.path.exists('models'):
@@ -124,22 +125,24 @@ if __name__ == "__main__":
     if use_tb:
         logger = SummaryWriter(comment='_' + args.env + '_bc')
 
-    # prepare networks
+    # prepare policys
     M = args.layer_size
-    network = Mlp(
-        input_size=obs_dim,
-        output_size=action_dim,
-        hidden_sizes=[M, M],
-        output_activation=F.tanh,
-    ).to(device)
+    if args.mixture:
+        raise ValueError('Not implemented error')
+    else:
+        policy = TanhGaussianPolicy(
+            obs_dim=obs_dim,
+            action_dim=action_dim,
+            hidden_sizes=[M, M],
+        ).to(ptu.device)
 
-    optimizer = optim.Adam(network.parameters(), lr=args.lr)
+    optimizer = optim.Adam(policy.parameters(), lr=args.lr)
     epch = 0
 
     if args.load_model is not None:
         if os.path.isfile(args.load_model):
             checkpoint = torch.load(args.load_model)
-            network.load_state_dict(checkpoint['network_state_dict'])
+            policy.load_state_dict(checkpoint['policy_state_dict'])
             optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
             t_loss = checkpoint['train_loss']
             epch = checkpoint['epoch']
@@ -149,7 +152,7 @@ if __name__ == "__main__":
 
     best_loss = np.Inf
     for epoch in range(epch, args.epochs):
-        t_loss = train(network, dataloader, optimizer, epoch, device)
+        t_loss = train(policy, dataloader, optimizer, epoch, device)
         print('=> epoch: {} Average Train loss: {:.4f}'.format(epoch, t_loss))
 
         if use_tb:
@@ -162,7 +165,7 @@ if __name__ == "__main__":
 
             torch.save({
                 'epoch': epoch + 1,
-                'network_state_dict': network.state_dict(),
+                'policy_state_dict': policy.state_dict(),
                 'optimizer_state_dict': optimizer.state_dict(),
                 'train_loss': t_loss
             }, file_name)

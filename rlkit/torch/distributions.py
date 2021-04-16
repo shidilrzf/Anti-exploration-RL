@@ -8,7 +8,6 @@ class TanhNormal(Distribution):
     Represent distribution of X where
         X ~ tanh(Z)
         Z ~ N(mean, std)
-
     Note: this is not very numerically stable.
     """
     def __init__(self, normal_mean, normal_std, epsilon=1e-6):
@@ -31,7 +30,6 @@ class TanhNormal(Distribution):
 
     def log_prob(self, value, pre_tanh_value=None):
         """
-
         :param value: some value, x
         :param pre_tanh_value: arctanh(x)
         :return:
@@ -47,7 +45,6 @@ class TanhNormal(Distribution):
     def sample(self, return_pretanh_value=False):
         """
         Gradients will and should *not* pass through this operation.
-
         See https://github.com/pytorch/pytorch/issues/4620 for discussion.
         """
         z = self.normal.sample().detach()

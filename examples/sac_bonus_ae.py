@@ -64,32 +64,12 @@ def experiment(variant):
     ).to(ptu.device)
 
     # initialize with bc or not
-    if variant['bc_model'] is None:
-        policy = TanhGaussianPolicy(
-            obs_dim=obs_dim,
-            action_dim=action_dim,
-            hidden_sizes=[M, M],
-        ).to(ptu.device)
-    else:
-        bc_model = Mlp(
-            input_size=obs_dim,
-            output_size=action_dim,
-            hidden_sizes=[64, 64],
-            output_activation=F.tanh,
-        ).to(ptu.device)
-
-        checkpoint = torch.load(variant['bc_model'], map_location=map_location)
-        bc_model.load_state_dict(checkpoint['network_state_dict'])
-        print('Loading bc model: {}'.format(variant['bc_model']))
-
-        # policy initialized with bc
-        policy = TanhGaussianPolicy_BC(
-            obs_dim=obs_dim,
-            action_dim=action_dim,
-            mean_network=bc_model,
-            hidden_sizes=[M, M],
-        ).to(ptu.device)
-
+    policy = TanhGaussianPolicy(
+        obs_dim=obs_dim,
+        action_dim=action_dim,
+        hidden_sizes=[M, M],
+    ).to(ptu.device)
+    
     # if bonus: define bonus networks
     if not variant['offline']:
         if variant['ae_network'] == 'VAE':
