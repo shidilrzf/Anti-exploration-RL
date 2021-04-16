@@ -21,7 +21,7 @@ import os
 import time
 
 
-def train(policy, dataloader, optimizer, epoch, device):
+def train(policy, dataloader, optimizer, epoch):
 
     policy.train()
     desc = 'Train'
@@ -152,7 +152,7 @@ if __name__ == "__main__":
 
     best_loss = np.Inf
     for epoch in range(epch, args.epochs):
-        t_loss = train(policy, dataloader, optimizer, epoch, device)
+        t_loss = train(policy, dataloader, optimizer, epoch)
         print('=> epoch: {} Average Train loss: {:.4f}'.format(epoch, t_loss))
 
         if use_tb:
