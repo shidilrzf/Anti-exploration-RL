@@ -152,7 +152,7 @@ class TanhGaussianPolicy(Mlp, ExplorationPolicy):
         )
 
 
-class TanhGaussianPolicy_BC(Mlp, ExplorationPolicy):
+class TanhGaussianPolicy_new(Mlp, ExplorationPolicy):
     """
     Usage:
 
@@ -175,7 +175,6 @@ class TanhGaussianPolicy_BC(Mlp, ExplorationPolicy):
             hidden_sizes,
             obs_dim,
             action_dim,
-            mean_network,
             std=None,
             init_w=1e-3,
             **kwargs
@@ -187,8 +186,6 @@ class TanhGaussianPolicy_BC(Mlp, ExplorationPolicy):
             init_w=init_w,
             **kwargs
         )
-        # mean initialized with bc
-        self.mean_network = mean_network
         self.log_std = None
         self.std = std
         if std is None:
@@ -214,8 +211,7 @@ class TanhGaussianPolicy_BC(Mlp, ExplorationPolicy):
         h = obs
         for i, fc in enumerate(self.fcs):
             h = self.hidden_activation(fc(h))
-        # mean = self.last_fc(h)
-        mean = self.mean_network(obs)
+        mean = self.last_fc(h)
         mean = torch.clamp(mean, MEAN_MIN, MEAN_MAX)
         if self.std is None:
             log_std = self.last_fc_log_std(h)
@@ -244,8 +240,7 @@ class TanhGaussianPolicy_BC(Mlp, ExplorationPolicy):
         h = obs
         for i, fc in enumerate(self.fcs):
             h = self.hidden_activation(fc(h))
-        # mean = self.last_fc(h)
-        mean = self.mean_network(obs)
+        mean = self.last_fc(h)
         if self.std is None:
             log_std = self.last_fc_log_std(h)
             log_std = torch.clamp(log_std, LOG_SIG_MIN, LOG_SIG_MAX)
@@ -264,18 +259,9 @@ class TanhGaussianPolicy_BC(Mlp, ExplorationPolicy):
             tanh_normal = TanhNormal(mean, std)
             if return_log_prob:
                 if reparameterize is True:
-                    action, pre_tanh_value = tanh_normal.rsample(
-                        return_pretanh_value=True
-                    )
+                    action, log_prob = tanh_normal.sample_and_logprob()
                 else:
-                    action, pre_tanh_value = tanh_normal.sample(
-                        return_pretanh_value=True
-                    )
-                log_prob = tanh_normal.log_prob(
-                    action,
-                    pre_tanh_value=pre_tanh_value
-                )
-                log_prob = log_prob.sum(dim=1, keepdim=True)
+                    action, log_prob = tanh_normal.rsample_and_logprob()
             else:
                 if reparameterize is True:
                     action = tanh_normal.rsample()
@@ -286,6 +272,7 @@ class TanhGaussianPolicy_BC(Mlp, ExplorationPolicy):
             action, mean, log_std, log_prob, entropy, std,
             mean_action_log_prob, pre_tanh_value,
         )
+
 
 
 class GaussianMixturePolicy(Mlp, ExplorationPolicy):
@@ -431,15 +418,10 @@ class GaussianMixturePolicy(Mlp, ExplorationPolicy):
         dist = GaussianMixture(mixture_means, mixture_stds, weights)
         if return_log_prob:
             if reparameterize is True:
-                action, pre_tanh_value = dist.rsample_with_pretanh()
+                action = dist.rsample()
             else:
-                action, pre_tanh_value = dist.sample(
-                    return_pretanh_value=True
-                )
-            log_prob = dist.log_prob(
-                action,
-                pre_tanh_value=pre_tanh_value
-            )
+                action = dist.sample()
+            log_prob = dist.log_prob(action)
             log_prob = log_prob.sum(dim=1, keepdim=True)
         else:
             if reparameterize is True:

@@ -110,7 +110,7 @@ if __name__ == "__main__":
 
     else:
         map_location = 'cpu'
-        ptu.set_gpu_mode(False)  
+        ptu.set_gpu_mode(False)
 
     # Setup asset directories
     if not os.path.exists('models'):
