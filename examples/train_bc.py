@@ -11,7 +11,7 @@ import torch.optim as optim
 # from torch.nn import functional as F
 
 from torch.utils.data import TensorDataset, DataLoader
-from rlkit.torch.sac.policies import TanhGaussianPolicy
+from rlkit.torch.sac.policies import TanhGaussianPolicy, GaussianMixturePolicy
 import rlkit.torch.pytorch_util as ptu
 
 
@@ -56,7 +56,7 @@ if __name__ == "__main__":
     parser.add_argument("--env", type=str, default='walker2d-medium-v0')
     # policy
     parser.add_argument('--layer-size', default=256, type=int)
-    parser.add_argument('--mixture', action='store_true', default=False, help='use norm')
+    parser.add_argument('--GMM', action='store_true', default=False, help='use norm')
 
     # Optimizer
     parser.add_argument('--epochs', type=int, default=100, metavar='N', help='number of training epochs')
@@ -127,14 +127,24 @@ if __name__ == "__main__":
 
     # prepare policys
     M = args.layer_size
-    if args.mixture:
-        raise ValueError('Not implemented error')
+    if args.GMM:
+        # raise ValueError('Not implemented error')
+        policy = GaussianMixturePolicy(
+            obs_dim=obs_dim,
+            action_dim=action_dim,
+            hidden_sizes=[M, M],
+            max_log_std=0,
+            min_log_std=-6,
+            num_gaussians=2,
+        ).to(ptu.device)
+        print('GMM Policy')
     else:
         policy = TanhGaussianPolicy(
             obs_dim=obs_dim,
             action_dim=action_dim,
             hidden_sizes=[M, M],
         ).to(ptu.device)
+        print('Tanh Gaussian Policy')
 
     optimizer = optim.Adam(policy.parameters(), lr=args.lr)
     epch = 0
