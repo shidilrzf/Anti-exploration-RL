@@ -311,7 +311,7 @@ class GaussianMixturePolicy(Mlp, ExplorationPolicy):
         super().__init__(
             hidden_sizes,
             input_size=obs_dim,
-            output_size=action_dim,
+            output_size=action_dim * num_gaussians,
             init_w=init_w,
             **kwargs
         )
@@ -329,13 +329,11 @@ class GaussianMixturePolicy(Mlp, ExplorationPolicy):
                 last_hidden_size = hidden_sizes[-1]
 
             if self.std_architecture == "shared":
-                self.last_fc_log_std = nn.Linear(last_hidden_size,
-                                                 action_dim * num_gaussians)
+                self.last_fc_log_std = nn.Linear(last_hidden_size, action_dim * num_gaussians)
                 self.last_fc_log_std.weight.data.uniform_(-init_w, init_w)
                 self.last_fc_log_std.bias.data.uniform_(-init_w, init_w)
             elif self.std_architecture == "values":
-                self.log_std_logits = nn.Parameter(
-                    ptu.zeros(action_dim * num_gaussians, requires_grad=True))
+                self.log_std_logits = nn.Parameter(ptu.zeros(action_dim * num_gaussians, requires_grad=True))
             else:
                 raise ValueError(self.std_architecture)
         else:
@@ -413,27 +411,29 @@ class GaussianMixturePolicy(Mlp, ExplorationPolicy):
         mean_action_log_prob = None
         pre_tanh_value = None
 
-        weights = F.softmax(self.last_fc_weights(h)).reshape(
-            (-1, self.num_gaussians, 1))
+        weights = F.softmax(self.last_fc_weights(h)).reshape((-1, self.num_gaussians, 1))
         mixture_means = mean.reshape((-1, self.action_dim, self.num_gaussians,))
         mixture_stds = std.reshape((-1, self.action_dim, self.num_gaussians,))
         dist = GaussianMixture(mixture_means, mixture_stds, weights)
-        if return_log_prob:
-            if reparameterize is True:
-                action = dist.rsample()
-            else:
-                action = dist.sample()
-            log_prob = dist.log_prob(action)
-            log_prob = log_prob.sum(dim=1, keepdim=True)
+        if deterministic:
+            action = dist.mean()
         else:
-            if reparameterize is True:
-                action = dist.rsample()
+            if return_log_prob:
+                if reparameterize is True:
+                    action = dist.rsample()
+                else:
+                    action = dist.sample()
+                log_prob = dist.log_prob(action)
+                # log_prob = log_prob.sum(dim=1, keepdim=True)
             else:
-                action = dist.sample()
+                if reparameterize is True:
+                    action = dist.rsample()
+                else:
+                    action = dist.sample()
 
         return (
             action, mean, log_std, log_prob, entropy, std,
-            mean_action_log_prob, pre_tanh_value,
+            mean_action_log_prob, pre_tanh_value, dist
         )
 
 

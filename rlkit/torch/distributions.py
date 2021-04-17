@@ -196,8 +196,8 @@ class GaussianMixture(Distribution):
         self.num_gaussians = weights.shape[1]
         self.normal_means = normal_means
         self.normal_stds = normal_stds
-        self.normal = MultivariateDiagonalNormal(normal_means, normal_stds)
-        self.normals = [MultivariateDiagonalNormal(normal_means[:, :, i], normal_stds[:, :, i]) for i in range(self.num_gaussians)]
+        self.normal = TorchNormal(normal_means, normal_stds)
+        self.normals = [TorchNormal(normal_means[:, :, i], normal_stds[:, :, i]) for i in range(self.num_gaussians)]
         self.weights = weights
         self.categorical = OneHotCategorical(self.weights[:, :, 0])
 
@@ -207,8 +207,8 @@ class GaussianMixture(Distribution):
         log_p = log_p.sum(dim=1)
         log_weights = torch.log(self.weights[:, :, 0])
         lp = log_weights + log_p
-        m = lp.max(dim=1)[0]  # log-sum-exp numerical stability trick
-        log_p_mixture = m + torch.log(torch.exp(lp - m).sum(dim=1))
+        m = lp.max(dim=1, keepdim=True)[0]  # log-sum-exp numerical stability trick
+        log_p_mixture = m + torch.log(torch.exp(lp - m).sum(dim=1, keepdim=True))
         return log_p_mixture
 
     def sample(self):
@@ -221,7 +221,7 @@ class GaussianMixture(Distribution):
         z = (
             self.normal_means +
             self.normal_stds *
-            MultivariateDiagonalNormal(
+            TorchNormal(
                 ptu.zeros(self.normal_means.size()),
                 ptu.ones(self.normal_stds.size())
             ).sample()
@@ -229,6 +229,18 @@ class GaussianMixture(Distribution):
         z.requires_grad_()
         c = self.categorical.sample()[:, :, None]
         s = torch.matmul(z, c)
+        return torch.squeeze(s, 2)
+
+    def mean(self, ):
+        """Misleading function name; this actually now samples the mean of the
+        most likely component.
+        c ~ argmax(C), returns mu_c
+        This often computes the mode of the distribution, but not always.
+        """
+        c = ptu.zeros(self.weights.shape[:2])
+        ind = torch.argmax(self.weights, dim=1)  # [:, 0]
+        c.scatter_(1, ind, 1)
+        s = torch.matmul(self.normal_means, c[:, :, None])
         return torch.squeeze(s, 2)
 
     def mle_estimate(self):
