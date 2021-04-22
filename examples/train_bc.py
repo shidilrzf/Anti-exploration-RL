@@ -57,6 +57,7 @@ if __name__ == "__main__":
     # policy
     parser.add_argument('--layer-size', default=256, type=int)
     parser.add_argument('--GMM', action='store_true', default=True, help='use norm')
+    parser.add_argument('--num-gaussians', default=10, type=int)
 
     # Optimizer
     parser.add_argument('--epochs', type=int, default=100, metavar='N', help='number of training epochs')
@@ -64,7 +65,7 @@ if __name__ == "__main__":
     parser.add_argument('--batch-size', type=int, default=256, metavar='N', help='input training batch-size')
     parser.add_argument('--seed', default=0, type=int)
     # normalization
-    parser.add_argument('--use_norm', action='store_true', default=False, help='use norm')
+    parser.add_argument('--use-norm', action='store_true', default=False, help='use norm')
     # cuda
     parser.add_argument('--no-cuda', action='store_true', default=False, help='disables cuda (default: False')
     parser.add_argument('--device-id', type=int, default=0, help='GPU device id (default: 0')
@@ -135,7 +136,7 @@ if __name__ == "__main__":
             hidden_sizes=[M, M],
             max_log_std=0,
             min_log_std=-6,
-            num_gaussians=2,
+            num_gaussians=args.num_gaussians,
         ).to(ptu.device)
         print('GMM Policy')
     else:
