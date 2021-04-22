@@ -56,7 +56,7 @@ if __name__ == "__main__":
     parser.add_argument("--env", type=str, default='walker2d-medium-v0')
     # policy
     parser.add_argument('--layer-size', default=256, type=int)
-    parser.add_argument('--GMM', action='store_true', default=False, help='use norm')
+    parser.add_argument('--GMM', action='store_true', default=True, help='use norm')
 
     # Optimizer
     parser.add_argument('--epochs', type=int, default=100, metavar='N', help='number of training epochs')

@@ -369,12 +369,11 @@ class GaussianMixturePolicy(Mlp, ExplorationPolicy):
             std = torch.from_numpy(self.std)
             log_std = self.log_std
 
-        weights = F.softmax(self.last_fc_weights(h)).reshape(
-            (-1, self.num_gaussians, 1))
+        weights = F.softmax(self.last_fc_weights(h), dim=-1).reshape((-1, self.num_gaussians, 1))
         mixture_means = mean.reshape((-1, self.action_dim, self.num_gaussians,))
         mixture_stds = std.reshape((-1, self.action_dim, self.num_gaussians,))
         dist = GaussianMixture(mixture_means, mixture_stds, weights)
-        log_prob = dist.log_prob(value=actions, pre_tanh_value=raw_actions)
+        log_prob = dist.log_prob(value=actions)
         return log_prob.sum(-1)
 
     def forward(
@@ -411,7 +410,7 @@ class GaussianMixturePolicy(Mlp, ExplorationPolicy):
         mean_action_log_prob = None
         pre_tanh_value = None
 
-        weights = F.softmax(self.last_fc_weights(h)).reshape((-1, self.num_gaussians, 1))
+        weights = F.softmax(self.last_fc_weights(h), dim=-1).reshape((-1, self.num_gaussians, 1))
         mixture_means = mean.reshape((-1, self.action_dim, self.num_gaussians,))
         mixture_stds = std.reshape((-1, self.action_dim, self.num_gaussians,))
         dist = GaussianMixture(mixture_means, mixture_stds, weights)
@@ -424,7 +423,7 @@ class GaussianMixturePolicy(Mlp, ExplorationPolicy):
                 else:
                     action = dist.sample()
                 log_prob = dist.log_prob(action)
-                # log_prob = log_prob.sum(dim=1, keepdim=True)
+                log_prob = log_prob.sum(dim=1, keepdim=True)
             else:
                 if reparameterize is True:
                     action = dist.rsample()
