@@ -20,6 +20,7 @@ class SAC_AETrainer(TorchTrainer):
             target_qf1,
             target_qf2,
             bonus_network,
+            bc_bonus,
             beta,
             use_bonus_critic,
             use_bonus_policy,
@@ -58,6 +59,7 @@ class SAC_AETrainer(TorchTrainer):
         self.device = device
 
         self.bonus_network = bonus_network
+        self.bc_bonus = bc_bonus
         self.beta = beta
 
         # type of adding bonus to critic or policy
@@ -122,7 +124,10 @@ class SAC_AETrainer(TorchTrainer):
         if self.normalize:
             obs = (obs - self.obs_mu) / self.obs_std
             # actions = (actions - self.actions_mu) / self.actions_std
-        action_hat, _, _ = self.bonus_network(obs, actions)
+        if self.bc_bonus:
+            action_hat, *_ = self.bonus_network(obs)
+        else:
+            action_hat, _, _ = self.bonus_network(obs, actions)
         # bonus = (abs(action_hat - actions)).mean(dim=-1).unsqueeze(-1)
         bonus = (abs(action_hat - actions)**2).mean(dim=-1).unsqueeze(-1)
         bonus = bonus / actions.size(-1)
@@ -184,7 +189,7 @@ class SAC_AETrainer(TorchTrainer):
         target_q_values = torch.min(
             self.target_qf1(next_obs, new_next_actions),
             self.target_qf2(next_obs, new_next_actions),
-        ) - alpha * new_log_pi
+        ) - alpha * new_log_pi.unsqueeze(-1)
 
         # use  in critic
         if self.use_bonus_critic:
