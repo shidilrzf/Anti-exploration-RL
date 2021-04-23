@@ -56,7 +56,7 @@ if __name__ == "__main__":
     parser.add_argument("--env", type=str, default='walker2d-medium-v0')
     # policy
     parser.add_argument('--layer-size', default=256, type=int)
-    parser.add_argument('--GMM', action='store_true', default=True, help='use norm')
+    parser.add_argument('--GMM', action='store_true', default=False, help='use norm')
     parser.add_argument('--num-gaussians', default=10, type=int)
 
     # Optimizer
@@ -144,6 +144,7 @@ if __name__ == "__main__":
             obs_dim=obs_dim,
             action_dim=action_dim,
             hidden_sizes=[M, M],
+            std=0.2,
         ).to(ptu.device)
         print('Tanh Gaussian Policy')
 
