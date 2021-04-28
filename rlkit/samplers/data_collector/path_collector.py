@@ -36,6 +36,7 @@ class MdpPathCollector(PathCollector):
             max_path_length,
             num_steps,
             discard_incomplete_paths,
+            policy_fn=None,
     ):
         paths = []
         num_steps_collected = 0

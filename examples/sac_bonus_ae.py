@@ -87,14 +87,14 @@ def experiment(variant):
 
         print('Loading bonus model: {}'.format(variant['bonus_path']))
 
-    # eval_policy = MakeDeterministic(policy)
-    # eval_path_collector = MdpPathCollector(
-    #     eval_env,
-    #     eval_policy,
-    # )
-    eval_path_collector = CustomMDPPathCollector(
+    eval_policy = MakeDeterministic(policy)
+    eval_path_collector = MdpPathCollector(
         eval_env,
+        eval_policy,
     )
+    # eval_path_collector = CustomMDPPathCollector(
+    #     eval_env,
+    # )
     expl_path_collector = CustomMDPPathCollector(
         eval_env,
     )

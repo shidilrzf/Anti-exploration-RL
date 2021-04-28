@@ -130,15 +130,15 @@ class BatchRLAlgorithm(BaseRLAlgorithm, metaclass=abc.ABCMeta):
                 if self.trainer.discrete:
                     policy_fn = self.policy_fn_discrete
                 self.eval_data_collector.collect_new_paths(
-                    policy_fn,
-                    self.max_path_length,
-                    self.num_eval_steps_per_epoch,
+                    policy_fn = policy_fn,
+                    max_path_length = self.max_path_length,
+                    num_steps = self.num_eval_steps_per_epoch,
                     discard_incomplete_paths=True
                 )
             else:
                 self.eval_data_collector.collect_new_paths(
-                    self.max_path_length,
-                    self.num_eval_steps_per_epoch,
+                    max_path_length = self.max_path_length,
+                    num_steps = self.num_eval_steps_per_epoch,
                     discard_incomplete_paths=True,
                 )
             gt.stamp('evaluation sampling')
