@@ -88,6 +88,7 @@ def experiment(variant):
         print('Loading bonus model: {}'.format(variant['bonus_path']))
 
     eval_policy = MakeDeterministic(policy)
+    # eval_policy = policy
     eval_path_collector = MdpPathCollector(
         eval_env,
         eval_policy,
@@ -216,7 +217,9 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # noinspection
+    # bonus_path = '/home/rezaeifa/ML/Anti-exploration-RL/examples/models/{}'.format(args.bonus_model)
     bonus_path = 'models/{}'.format(args.bonus_model)
+
     print(bonus_path)
     variant = dict(
         algorithm="SAC",

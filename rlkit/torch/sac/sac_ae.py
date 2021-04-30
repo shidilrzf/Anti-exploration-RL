@@ -189,7 +189,7 @@ class SAC_AETrainer(TorchTrainer):
         target_q_values = torch.min(
             self.target_qf1(next_obs, new_next_actions),
             self.target_qf2(next_obs, new_next_actions),
-        ) - alpha * new_log_pi.unsqueeze(-1)
+        ) - alpha * new_log_pi
 
         # use  in critic
         if self.use_bonus_critic:

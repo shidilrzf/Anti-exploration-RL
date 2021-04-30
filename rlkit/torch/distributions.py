@@ -337,7 +337,7 @@ class TanhNormal(Distribution):
         """
         self.normal_mean = normal_mean
         self.normal_std = normal_std
-        self.normal = MultivariateDiagonalNormal(normal_mean, normal_std)
+        self.normal = TorchNormal(normal_mean, normal_std)
         self.epsilon = epsilon
 
     def sample_n(self, n, return_pre_tanh_value=False):
@@ -347,44 +347,33 @@ class TanhNormal(Distribution):
         else:
             return torch.tanh(z)
 
-    def _log_prob_from_pre_tanh(self, pre_tanh_value):
+    def log_prob(self, value, pre_tanh_value=None):
         """
-        Adapted from
-        https://github.com/tensorflow/probability/blob/master/tensorflow_probability/python/bijectors/tanh.py#L73
-        This formula is mathematically equivalent to log(1 - tanh(x)^2).
-        Derivation:
-        log(1 - tanh(x)^2)
-         = log(sech(x)^2)
-         = 2 * log(sech(x))
-         = 2 * log(2e^-x / (e^-2x + 1))
-         = 2 * (log(2) - x - log(e^-2x + 1))
-         = 2 * (log(2) - x - softplus(-2x))
         :param value: some value, x
         :param pre_tanh_value: arctanh(x)
         :return:
         """
-        log_prob = self.normal.log_prob(pre_tanh_value)
-        correction = - 2. * (
-            ptu.from_numpy(np.log([2.])) - pre_tanh_value - torch.nn.functional.softplus(-2. * pre_tanh_value)
-        ).sum(dim=1)
-        return log_prob + correction
-
-    def log_prob(self, value, pre_tanh_value=None):
         if pre_tanh_value is None:
-            # errors or instability at values near 1
-            value = torch.clamp(value, -0.999999, 0.999999)
-            pre_tanh_value = torch.log(1 + value) / 2 - torch.log(1 - value) / 2
-        return self._log_prob_from_pre_tanh(pre_tanh_value)
+            pre_tanh_value = torch.log(
+                (1 + value) / (1 - value)
+            ) / 2
+        return self.normal.log_prob(pre_tanh_value) - torch.log(1 - value * value + self.epsilon)
 
     def rsample_with_pretanh(self):
         z = (
             self.normal_mean +
             self.normal_std *
-            MultivariateDiagonalNormal(
+            TorchNormal(
                 ptu.zeros(self.normal_mean.size()),
                 ptu.ones(self.normal_std.size())
             ).sample()
-        )
+        ).detach()
+        return torch.tanh(z), z
+
+    def sample_with_pretanh(self):
+
+        z = self.normal.sample().detach()
+
         return torch.tanh(z), z
 
     def sample(self):
@@ -392,7 +381,7 @@ class TanhNormal(Distribution):
         Gradients will and should *not* pass through this operation.
         See https://github.com/pytorch/pytorch/issues/4620 for discussion.
         """
-        value, pre_tanh_value = self.rsample_with_pretanh()
+        value, pre_tanh_value = self.sample_with_pretanh()
         return value.detach()
 
     def rsample(self):
@@ -403,7 +392,7 @@ class TanhNormal(Distribution):
         return value
 
     def sample_and_logprob(self):
-        value, pre_tanh_value = self.rsample_with_pretanh()
+        value, pre_tanh_value = self.sample_with_pretanh()
         value, pre_tanh_value = value.detach(), pre_tanh_value.detach()
         log_p = self.log_prob(value, pre_tanh_value)
         return value, log_p

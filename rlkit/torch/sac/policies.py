@@ -266,6 +266,7 @@ class TanhGaussianPolicy(Mlp, ExplorationPolicy):
                     action, log_prob = tanh_normal.sample_and_logprob()
                 else:
                     action, log_prob = tanh_normal.rsample_and_logprob()
+                log_prob = log_prob.sum(dim=1, keepdim=True)
             else:
                 if reparameterize is True:
                     action = tanh_normal.rsample()
