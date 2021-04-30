@@ -87,15 +87,15 @@ def experiment(variant):
 
         print('Loading bonus model: {}'.format(variant['bonus_path']))
 
-    eval_policy = MakeDeterministic(policy)
-    # eval_policy = policy
-    eval_path_collector = MdpPathCollector(
-        eval_env,
-        eval_policy,
-    )
-    # eval_path_collector = CustomMDPPathCollector(
-    #     eval_env,
-    # )
+    if variant['deterministic']:
+        eval_policy = MakeDeterministic(policy)
+        eval_path_collector = MdpPathCollector(
+            eval_env,
+            eval_policy)
+    else:
+        eval_path_collector = CustomMDPPathCollector(
+            eval_env,
+        )
     expl_path_collector = CustomMDPPathCollector(
         eval_env,
     )
@@ -211,15 +211,16 @@ if __name__ == "__main__":
     # d4rl
     parser.add_argument('--dataset_path', type=str, default=None, help='d4rl dataset path')
 
+    # evaluation
+    parser.add_argument('--deterministic', action='store_true', default=False, help='determinstic policy for evaluation')
+
     parser.add_argument('--no-cuda', action='store_true', default=False, help='disables cuda (default: False')
     parser.add_argument('--seed', default=10, type=int)
     parser.add_argument('--device-id', type=int, default=0, help='GPU device id (default: 0')
     args = parser.parse_args()
 
     # noinspection
-    # bonus_path = '/home/rezaeifa/ML/Anti-exploration-RL/examples/models/{}'.format(args.bonus_model)
     bonus_path = 'models/{}'.format(args.bonus_model)
-
     print(bonus_path)
     variant = dict(
         algorithm="SAC",
@@ -249,6 +250,9 @@ if __name__ == "__main__":
 
         # make reward positive
         reward_shift=args.reward_shift,
+
+        # evaluation
+        deterministic=args.deterministic,
 
         algorithm_kwargs=dict(
             num_epochs=args.num_epochs,
