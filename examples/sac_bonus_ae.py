@@ -1,15 +1,17 @@
-# from gym.envs.mujoco import HalfCheetahEnv
+from gym.envs.mujoco import HalfCheetahEnv
 
 import rlkit.torch.pytorch_util as ptu
 from rlkit.data_management.env_replay_buffer import EnvReplayBuffer
 from rlkit.launchers.launcher_util import setup_logger
 from rlkit.samplers.data_collector import MdpPathCollector, CustomMDPPathCollector
-from rlkit.torch.sac.policies import TanhGaussianPolicy, MakeDeterministic
+from rlkit.torch.sac.policies import TanhGaussianPolicy, TanhGaussianPolicy_BC, MakeDeterministic
 from rlkit.torch.sac.sac import SACTrainer
 from rlkit.torch.sac.sac_ae import SAC_AETrainer
 
-from rlkit.torch.networks import FlattenMlp, VAE
+from rlkit.torch.networks import FlattenMlp, Mlp, VAE
 from rlkit.torch.torch_rl_algorithm import TorchBatchRLAlgorithm
+
+from torch.nn import functional as F
 
 
 import argparse
@@ -19,7 +21,6 @@ import d4rl
 import numpy as np
 import torch
 import time
-import pathlib
 
 
 def load_hdf5(dataset, replay_buffer):
@@ -63,44 +64,58 @@ def experiment(variant):
     ).to(ptu.device)
 
     # initialize with bc or not
-    policy = TanhGaussianPolicy(
-        obs_dim=obs_dim,
-        action_dim=action_dim,
-        hidden_sizes=[M, M],
-    ).to(ptu.device)
+    if variant['bc_model'] is None:
+        policy = TanhGaussianPolicy(
+            obs_dim=obs_dim,
+            action_dim=action_dim,
+            hidden_sizes=[M, M],
+        ).to(ptu.device)
+    else:
+        bc_model = Mlp(
+            input_size=obs_dim,
+            output_size=action_dim,
+            hidden_sizes=[64, 64],
+            output_activation=F.tanh,
+        ).to(ptu.device)
+
+        checkpoint = torch.load(variant['bc_model'], map_location=map_location)
+        bc_model.load_state_dict(checkpoint['network_state_dict'])
+        print('Loading bc model: {}'.format(variant['bc_model']))
+
+        # policy initialized with bc
+        policy = TanhGaussianPolicy_BC(
+            obs_dim=obs_dim,
+            action_dim=action_dim,
+            mean_network=bc_model,
+            hidden_sizes=[M, M],
+        ).to(ptu.device)
 
     # if bonus: define bonus networks
     if not variant['offline']:
-        checkpoint = torch.load(variant['bonus_path'], map_location=ptu.device)
-        if variant['BC']:
-            bonus_network = TanhGaussianPolicy(
-                obs_dim=obs_dim,
-                action_dim=action_dim,
-                hidden_sizes=[M, M],
-                std=variant['std']).to(ptu.device)
-            bonus_network.load_state_dict(checkpoint['policy_state_dict'])
-            rint('Loading BC bonus model: {}'.format(variant['bonus_path']))
-
-        else:
+        if variant['ae_network'] == 'VAE':
             bonus_network = VAE(
                 input_sizes=[obs_dim, action_dim],
                 latent_size=args.latent_size,
             ).to(ptu.device)
-            bonus_network.load_state_dict(checkpoint['network_state_dict'])
-            print('Loading VAE bonus model: {}'.format(variant['bonus_path']))
 
-    if variant['deterministic']:
-        eval_policy = MakeDeterministic(policy)
-        eval_path_collector = MdpPathCollector(
-            eval_env,
-            eval_policy)
-    else:
-        eval_path_collector = CustomMDPPathCollector(
-            eval_env,
-        )
+        else:
+            raise ValueError('Not implemented error')
+
+        checkpoint = torch.load(variant['bonus_path'], map_location=ptu.device)
+        bonus_network.load_state_dict(checkpoint['network_state_dict'])
+        print('Loading bonus model: {}'.format(variant['bonus_path']))
+
+    eval_policy = MakeDeterministic(policy)
+    eval_path_collector = MdpPathCollector(
+        eval_env,
+        eval_policy,
+    )
     expl_path_collector = CustomMDPPathCollector(
         eval_env,
     )
+    buffer_filename = None
+    if variant['buffer_filename'] is not None:
+        buffer_filename = variant['buffer_filename']
 
     replay_buffer = EnvReplayBuffer(
         variant['replay_buffer_size'],
@@ -123,7 +138,7 @@ def experiment(variant):
     else:
         rewards_shift_param = None
 
-    reward_scale = 1 / (max(dataset['rewards']) - min(dataset['rewards']))
+    reward_scale = 1/ ( max(dataset['rewards']) - min(dataset['rewards']) )
 
     if variant['offline']:
         trainer = SACTrainer(
@@ -147,7 +162,6 @@ def experiment(variant):
             target_qf1=target_qf1,
             target_qf2=target_qf2,
             bonus_network=bonus_network,
-            bc_bonus=variant['BC'],
             beta=variant['bonus_beta'],
             use_bonus_critic=variant['use_bonus_critic'],
             use_bonus_policy=variant['use_bonus_policy'],
@@ -158,7 +172,7 @@ def experiment(variant):
             reward_scale=reward_scale,
             **variant['trainer_kwargs']
         )
-        print('Agent of type SAC + additive bonus created')
+        print('Agent of type SAC + VAE additive bonus created')
     else:
         raise ValueError('Not implemented error')
 
@@ -199,8 +213,7 @@ if __name__ == "__main__":
     parser.add_argument("--root_path", type=str, default='/home/shideh/', help='path to the bonus model')
     parser.add_argument("--bonus_model", type=str, default=None, help='name of the bonus model')
     parser.add_argument('--bonus_type', type=str, default='actor-critic', help='use bonus in actor, critic or both')
-    parser.add_argument('--BC', action='store_true', default=False, help='BC as bonus')
-    parser.add_argument('--std', type=float, default=None, help='std of BC network')
+    parser.add_argument('--ae_network', type=str, default='VAE', help='type of AE')
     parser.add_argument('--latent_size', default=12, type=int)
     parser.add_argument('--normalize', action='store_true', default=False, help='use normalization in bonus')
     parser.add_argument('--reward_shift', default=None, type=int, help='minimum reward')
@@ -212,9 +225,6 @@ if __name__ == "__main__":
 
     # d4rl
     parser.add_argument('--dataset_path', type=str, default=None, help='d4rl dataset path')
-
-    # evaluation
-    parser.add_argument('--deterministic', action='store_true', default=False, help='determinstic policy for evaluation')
 
     parser.add_argument('--no-cuda', action='store_true', default=False, help='disables cuda (default: False')
     parser.add_argument('--seed', default=10, type=int)
@@ -234,8 +244,7 @@ if __name__ == "__main__":
         bonus=args.bonus,
         bonus_path=bonus_path,
         bonus_beta=args.rho * args.beta,
-        BC=args.BC,
-        std=args.std,
+        ae_network=args.ae_network,
         use_log=args.use_log,
         replay_buffer_size=int(1E6),
         layer_size=256,
@@ -252,9 +261,6 @@ if __name__ == "__main__":
 
         # make reward positive
         reward_shift=args.reward_shift,
-
-        # evaluation
-        deterministic=args.deterministic,
 
         algorithm_kwargs=dict(
             num_epochs=args.num_epochs,
@@ -308,7 +314,7 @@ if __name__ == "__main__":
         exp_dir = '{}/offline/{}_{}'.format(args.env, timestamp, args.seed)
 
     # setup the logger
-    setup_logger(variant=variant, log_dir='logs/debugging/{}'.format(exp_dir))
+    setup_logger(variant=variant, log_dir='logs/{}'.format(exp_dir))
 
     # cuda setup
     use_cuda = not args.no_cuda and torch.cuda.is_available()
