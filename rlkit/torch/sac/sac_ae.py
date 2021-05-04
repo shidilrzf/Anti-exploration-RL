@@ -130,7 +130,6 @@ class SAC_AETrainer(TorchTrainer):
             action_hat, _, _ = self.bonus_network(obs, actions)
         # bonus = (abs(action_hat - actions)).mean(dim=-1).unsqueeze(-1)
         bonus = (abs(action_hat - actions)**2).mean(dim=-1).unsqueeze(-1)
-        bonus = bonus / actions.size(-1)
 
         if self.use_log:
             return torch.exp(bonus)
