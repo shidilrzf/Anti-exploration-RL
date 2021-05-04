@@ -4,7 +4,7 @@ import rlkit.torch.pytorch_util as ptu
 from rlkit.data_management.env_replay_buffer import EnvReplayBuffer
 from rlkit.launchers.launcher_util import setup_logger
 from rlkit.samplers.data_collector import MdpPathCollector, CustomMDPPathCollector
-from rlkit.torch.sac.policies import TanhGaussianPolicy, TanhGaussianPolicy_BC, MakeDeterministic
+from rlkit.torch.sac.policies import TanhGaussianPolicy, TanhGaussianPolicy_BC
 from rlkit.torch.sac.sac import SACTrainer
 from rlkit.torch.sac.sac_ae import SAC_AETrainer
 
@@ -105,13 +105,13 @@ def experiment(variant):
         bonus_network.load_state_dict(checkpoint['network_state_dict'])
         print('Loading bonus model: {}'.format(variant['bonus_path']))
 
-    eval_policy = MakeDeterministic(policy)
-    eval_path_collector = MdpPathCollector(
+    # eval_policy = MakeDeterministic(policy)
+    eval_path_collector = CustomMDPPathCollector(
         eval_env,
-        eval_policy,
     )
-    expl_path_collector = CustomMDPPathCollector(
-        eval_env,
+    expl_path_collector = MdpPathCollector(
+        expl_env,
+        policy,
     )
     buffer_filename = None
     if variant['buffer_filename'] is not None:
