@@ -1,4 +1,4 @@
-from gym.envs.mujoco import HalfCheetahEnv
+# from gym.envs.mujoco import HalfCheetahEnv
 
 import rlkit.torch.pytorch_util as ptu
 from rlkit.data_management.env_replay_buffer import EnvReplayBuffer
@@ -19,6 +19,7 @@ import d4rl
 import numpy as np
 import torch
 import time
+import pathlib
 
 
 def load_hdf5(dataset, replay_buffer):
@@ -78,14 +79,15 @@ def experiment(variant):
                 hidden_sizes=[M, M],
                 std=variant['std']).to(ptu.device)
             bonus_network.load_state_dict(checkpoint['policy_state_dict'])
+            rint('Loading BC bonus model: {}'.format(variant['bonus_path']))
+
         else:
             bonus_network = VAE(
                 input_sizes=[obs_dim, action_dim],
                 latent_size=args.latent_size,
             ).to(ptu.device)
             bonus_network.load_state_dict(checkpoint['network_state_dict'])
-
-        print('Loading bonus model: {}'.format(variant['bonus_path']))
+            print('Loading VAE bonus model: {}'.format(variant['bonus_path']))
 
     if variant['deterministic']:
         eval_policy = MakeDeterministic(policy)
@@ -156,7 +158,7 @@ def experiment(variant):
             reward_scale=reward_scale,
             **variant['trainer_kwargs']
         )
-        print('Agent of type SAC + VAE additive bonus created')
+        print('Agent of type SAC + additive bonus created')
     else:
         raise ValueError('Not implemented error')
 
@@ -306,7 +308,7 @@ if __name__ == "__main__":
         exp_dir = '{}/offline/{}_{}'.format(args.env, timestamp, args.seed)
 
     # setup the logger
-    setup_logger(variant=variant, log_dir='logs/{}'.format(exp_dir))
+    setup_logger(variant=variant, log_dir='logs/debugging/{}'.format(exp_dir))
 
     # cuda setup
     use_cuda = not args.no_cuda and torch.cuda.is_available()
