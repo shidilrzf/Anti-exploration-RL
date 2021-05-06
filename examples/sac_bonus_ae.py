@@ -192,7 +192,6 @@ if __name__ == "__main__":
     parser.add_argument('--offline', action='store_true', default=False, help='offline sac')
     parser.add_argument('--bonus', type=str, default='bonus_add', help='different type of bonus: bonus_add, bonus_mlt')  # Q + bonus or Q * bonus
     parser.add_argument('--beta', default=1, type=float, help='beta for the bonus')
-    parser.add_argument('--rho', default=1, type=float, help='beta for the bonus')
 
     parser.add_argument("--root_path", type=str, default='/home/shideh/', help='path to the bonus model')
     parser.add_argument("--bonus_model", type=str, default=None, help='name of the bonus model')
@@ -231,7 +230,7 @@ if __name__ == "__main__":
         offline=args.offline,
         bonus=args.bonus,
         bonus_path=bonus_path,
-        bonus_beta=args.rho * args.beta,
+        bonus_beta=args.beta,
         BC=args.BC,
         std=args.std,
         use_log=args.use_log,
