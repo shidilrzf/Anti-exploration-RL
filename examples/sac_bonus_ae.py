@@ -305,7 +305,8 @@ if __name__ == "__main__":
         exp_dir = '{}/offline/{}_{}'.format(args.env, timestamp, args.seed)
 
     # setup the logger
-    setup_logger(variant=variant, log_dir='logs/{}'.format(exp_dir))
+    log_dir = 'logs/deterministic/{}'.format(exp_dir)
+    setup_logger(variant=variant, log_dir=log_dir)
 
     # cuda setup
     use_cuda = not args.no_cuda and torch.cuda.is_available()
@@ -319,5 +320,5 @@ if __name__ == "__main__":
         map_location = 'cpu'
         ptu.set_gpu_mode(False)  # optionally set the GPU (default=False)
 
-    print('experiment dir:logs/{}'.format(exp_dir))
+    print('experiment dir:{}'.format(log_dir))
     experiment(variant)
