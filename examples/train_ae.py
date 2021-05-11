@@ -165,9 +165,9 @@ if __name__ == "__main__":
     elif args.network == 'VAE':
         network = VAE(
             input_sizes=[obs_dim, action_dim],
-            latent_size=args.latent_size,
+            latent_size=2 * action_dim,
         ).to(device)
-        variant['latent_size'] = args.latent_size
+        variant['latent_size'] = 2 * action_dim
 
     else:
         raise ValueError('Not implemented error')
