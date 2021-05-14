@@ -152,6 +152,7 @@ def experiment(variant):
             use_log=variant['use_log'],
             norm_param=bonus_norm_param,
             rewards_shift_param=rewards_shift_param,
+            num_actions=variant['num_actions'],
             device=ptu.device,
             reward_scale=reward_scale,
             **variant['trainer_kwargs']
@@ -185,7 +186,8 @@ if __name__ == "__main__":
     parser.add_argument('--qf_lr', default=1e-4, type=float)
     parser.add_argument('--policy_lr', default=1e-4, type=float)
     parser.add_argument('--alpha_lr', default=1e-5, type=float)
-    parser.add_argument('--num_samples', default=100, type=int)
+    parser.add_argument('--num_samples', default=10, type=int)
+    parser.add_argument('--num_actions', default=1, type=int, help='num actions per state for actor loss')
     parser.add_argument('--no_automatic_entropy_tuning', action='store_true', default=False, help='no automatic entropy tuning')
 
     # bonus
@@ -249,6 +251,9 @@ if __name__ == "__main__":
 
         # make reward positive
         reward_shift=args.reward_shift,
+
+        # num actions per state for actor loss
+        num_actions=args.num_actions,
 
         # evaluation
         deterministic=args.deterministic,

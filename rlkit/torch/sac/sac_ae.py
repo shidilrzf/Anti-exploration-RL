@@ -30,6 +30,8 @@ class SAC_AETrainer(TorchTrainer):
             norm_param,
             rewards_shift_param,
 
+            num_actions,
+
             device,
 
             discount=0.99,
@@ -78,6 +80,9 @@ class SAC_AETrainer(TorchTrainer):
             self.obs_std = ptu.from_numpy(self.obs_std).to(device)
 
         self.rewards_shift_param = rewards_shift_param
+
+        # num actions per state for actor loss
+        self.num_actions = num_actions
 
         self.soft_target_tau = soft_target_tau
         self.target_update_period = target_update_period
@@ -152,8 +157,9 @@ class SAC_AETrainer(TorchTrainer):
         """
         Policy and Alpha Loss
         """
+        obs_temp = obs.unsqueeze(1).repeat(1, self.num_actions, 1).view(obs.shape[0] * self.num_actions, obs.shape[1])
         new_obs_actions, policy_mean, policy_log_std, log_pi, *_ = self.policy(
-            obs, reparameterize=True, return_log_prob=True,
+            obs_temp, reparameterize=True, return_log_prob=True,
         )
         if self.use_automatic_entropy_tuning:
             alpha_loss = -(self.log_alpha * (log_pi + self.target_entropy).detach()).mean()
@@ -166,12 +172,12 @@ class SAC_AETrainer(TorchTrainer):
             alpha = 1
 
         q_new_actions = torch.min(
-            self.qf1(obs, new_obs_actions),
-            self.qf2(obs, new_obs_actions),
+            self.qf1(obs_temp, new_obs_actions),
+            self.qf2(obs_temp, new_obs_actions),
         )
         # use  in policy
         if self.use_bonus_policy:
-            actor_bonus = self._get_bonus(obs, new_obs_actions)
+            actor_bonus = self._get_bonus(obs_temp, new_obs_actions)
             q_new_actions = q_new_actions - self.beta * actor_bonus
 
         policy_loss = (alpha * log_pi - q_new_actions).mean()
