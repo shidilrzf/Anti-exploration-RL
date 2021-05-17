@@ -66,6 +66,7 @@ def experiment(variant):
         obs_dim=obs_dim,
         action_dim=action_dim,
         hidden_sizes=[M, M],
+        std=variant['policy_std'],
     ).to(ptu.device)
 
     # if bonus: define bonus networks
@@ -75,8 +76,7 @@ def experiment(variant):
             bonus_network = TanhGaussianPolicy(
                 obs_dim=obs_dim,
                 action_dim=action_dim,
-                hidden_sizes=[M, M],
-                std=variant['std']).to(ptu.device)
+                hidden_sizes=[M, M]).to(ptu.device)
             bonus_network.load_state_dict(checkpoint['policy_state_dict'])
         else:
             bonus_network = VAE(
@@ -189,6 +189,7 @@ if __name__ == "__main__":
     parser.add_argument('--num_samples', default=10, type=int)
     parser.add_argument('--num_actions', default=1, type=int, help='num actions per state for actor loss')
     parser.add_argument('--no_automatic_entropy_tuning', action='store_true', default=False, help='no automatic entropy tuning')
+    parser.add_argument('--policy_std', type=float, default=None, help='std of policy network')
 
     # bonus
     parser.add_argument('--offline', action='store_true', default=False, help='offline sac')
@@ -199,7 +200,6 @@ if __name__ == "__main__":
     parser.add_argument("--bonus_model", type=str, default=None, help='name of the bonus model')
     parser.add_argument('--bonus_type', type=str, default='actor-critic', help='use bonus in actor, critic or both')
     parser.add_argument('--BC', action='store_true', default=False, help='BC as bonus')
-    parser.add_argument('--std', type=float, default=None, help='std of BC network')
     parser.add_argument('--latent_size', default=12, type=int)
     parser.add_argument('--normalize', action='store_true', default=False, help='use normalization in bonus')
     parser.add_argument('--reward_shift', default=None, type=int, help='minimum reward')
@@ -234,7 +234,7 @@ if __name__ == "__main__":
         bonus_path=bonus_path,
         bonus_beta=args.beta,
         BC=args.BC,
-        std=args.std,
+        policy_std=args.policy_std,
         use_log=args.use_log,
         replay_buffer_size=int(1E6),
         layer_size=256,

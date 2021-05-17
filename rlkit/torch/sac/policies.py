@@ -57,6 +57,7 @@ class TanhGaussianPolicy(Mlp, ExplorationPolicy):
             init_w=init_w,
             **kwargs
         )
+        self.action_dim = action_dim
         self.log_std = None
         self.std = std
         if std is None:
@@ -89,8 +90,11 @@ class TanhGaussianPolicy(Mlp, ExplorationPolicy):
             log_std = torch.clamp(log_std, LOG_SIG_MIN, LOG_SIG_MAX)
             std = torch.exp(log_std)
         else:
-            std = self.std
-            log_std = self.log_std
+            # std = self.std
+            # log_std = self.log_std
+            std = self.std * ptu.ones((obs.size(0), self.action_dim))
+            log_std = torch.log(std)
+            log_std = torch.clamp(log_std, LOG_SIG_MIN, LOG_SIG_MAX)
 
         tanh_normal = TanhNormal(mean, std)
         log_prob = tanh_normal.log_prob(value=actions, pre_tanh_value=raw_actions)
@@ -117,8 +121,11 @@ class TanhGaussianPolicy(Mlp, ExplorationPolicy):
             log_std = torch.clamp(log_std, LOG_SIG_MIN, LOG_SIG_MAX)
             std = torch.exp(log_std)
         else:
-            std = self.std
-            log_std = self.log_std
+            # std = self.std
+            # log_std = self.log_std
+            std = self.std * ptu.ones((obs.size(0), self.action_dim))
+            log_std = torch.log(std)
+            log_std = torch.clamp(log_std, LOG_SIG_MIN, LOG_SIG_MAX)
 
         log_prob = None
         entropy = None
