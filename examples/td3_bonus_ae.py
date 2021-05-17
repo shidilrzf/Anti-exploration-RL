@@ -37,7 +37,7 @@ def load_hdf5(dataset, replay_buffer):
 
 
 def experiment(variant):
-    eval_env = gym.make(variant['env'])
+    eval_env = gym.make(variant['env_name'])
     expl_env = eval_env
     obs_dim = expl_env.observation_space.low.size
     action_dim = eval_env.action_space.low.size
@@ -77,15 +77,10 @@ def experiment(variant):
 
     # if bonus: define bonus networks
     if not variant['offline']:
-
-        if variant['ae_network'] == 'VAE':
-            bonus_network = VAE(
-                input_sizes=[obs_dim, action_dim],
-                latent_size=args.latent_size,
-            ).to(ptu.device)
-
-        else:
-            raise ValueError('Not implemented error')
+        bonus_network = VAE(
+            input_sizes=[obs_dim, action_dim],
+            latent_size=args.latent_size,
+        ).to(ptu.device)
 
         checkpoint = torch.load(variant['bonus_path'], map_location=ptu.device)
         bonus_network.load_state_dict(checkpoint['network_state_dict'])
@@ -99,9 +94,6 @@ def experiment(variant):
         expl_env,
         policy,
     )
-    buffer_filename = None
-    if variant['buffer_filename'] is not None:
-        buffer_filename = variant['buffer_filename']
 
     replay_buffer = EnvReplayBuffer(
         variant['replay_buffer_size'],
@@ -125,6 +117,8 @@ def experiment(variant):
         print('.... reward is shifted : {} '.format(rewards_shift_param))
     else:
         rewards_shift_param = None
+    reward_scale = 1 / (max(dataset['rewards']) - min(dataset['rewards']))
+
     if variant['offline']:
         trainer = TD3Trainer(
             policy=policy,
@@ -153,6 +147,7 @@ def experiment(variant):
             bonus_norm_param=bonus_norm_param,
             rewards_shift_param=rewards_shift_param,
             device=ptu.device,
+            reward_scale=reward_scale,
             **variant['trainer_kwargs']
         )
         print('Agent of type TD3 + additive bonus created')
@@ -174,32 +169,34 @@ def experiment(variant):
     algorithm.to(ptu.device)
     algorithm.train()
 
-
 if __name__ == "__main__":
 
-    parser = argparse.ArgumentParser(description='TD3_bonus')
+    parser = argparse.ArgumentParser(description='sac_bonus')
     parser.add_argument("--env", type=str, default='walker2d-medium-v0')
-    # sac
-    parser.add_argument('--alpha_lr', default=3e-5, type=float)
-    parser.add_argument('--qf_lr', default=3e-4, type=float)
+    parser.add_argument('--num_epochs', default=2000, type=int)
+
+    # td3
+    parser.add_argument('--qf_lr', default=1e-4, type=float)
     parser.add_argument('--policy_lr', default=1e-4, type=float)
-    parser.add_argument('--num_samples', default=100, type=int)
+    parser.add_argument('--num_samples', default=10, type=int)
 
     # bonus
-    parser.add_argument('--offline', action='store_true', default=False, help='offline TD3')
+    parser.add_argument('--offline', action='store_true', default=False, help='offline sac')
     parser.add_argument('--bonus', type=str, default='bonus_add', help='different type of bonus: bonus_add, bonus_mlt')  # Q + bonus or Q * bonus
-    parser.add_argument('--beta', default=0.25, type=float, help='beta for the bonus')
+    parser.add_argument('--beta', default=1, type=float, help='beta for the bonus')
+
     parser.add_argument("--root_path", type=str, default='/home/shideh/', help='path to the bonus model')
     parser.add_argument("--bonus_model", type=str, default=None, help='name of the bonus model')
     parser.add_argument('--bonus_type', type=str, default='actor-critic', help='use bonus in actor, critic or both')
-    parser.add_argument('--bonus_layer', default=128, type=int, help='layer size of the bonus model')
-    parser.add_argument('--ae_network', type=str, default='VAE', help='type of AE')
+    parser.add_argument('--BC', action='store_true', default=False, help='BC as bonus')
     parser.add_argument('--latent_size', default=12, type=int)
-    parser.add_argument('--act_embed_size', default=16, type=int)
-    parser.add_argument('--obs_embed_size', default=16, type=int)
-    parser.add_argument('--normalize', action='store_true', default=True, help='use normalization in bonus')
+    parser.add_argument('--normalize', action='store_true', default=False, help='use normalization in bonus')
     parser.add_argument('--reward_shift', default=None, type=int, help='minimum reward')
-    parser.add_argument('--use_log', action='store_true', default=False, help='use log(bonus(s, a) otherwise bonus(s, a)')
+    parser.add_argument('--initialize_Q', action='store_true', default=False, help='initialize Q with bonus')
+    parser.add_argument('--use_log', action='store_true', default=False, help='use log(bonus(s, a) otherwise 1 - bonus(s, a)')
+
+    # initialize with bc
+    parser.add_argument("--bc_model", type=str, default=None, help='name of pretrained bc model')
 
     # d4rl
     parser.add_argument('--dataset_path', type=str, default=None, help='d4rl dataset path')
@@ -210,8 +207,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # noinspection
-    # bonus_path = '{}RL/continuous_rnd/sac/examples/models/{}'.format(
-    #     args.root_path, args.bonus_model)
     bonus_path = 'models/{}'.format(args.bonus_model)
     print(bonus_path)
 
@@ -222,16 +217,13 @@ if __name__ == "__main__":
         offline=args.offline,
         bonus=args.bonus,
         bonus_path=bonus_path,
-        bonus_beta=10 * args.beta,
+        bonus_beta=args.beta,
         use_log=args.use_log,
-        # ae
-        ae_network=args.ae_network,
-        layer_size=256,
-        bonus_layer_size=args.bonus_layer,
         replay_buffer_size=int(1E6),
+        layer_size=256,
         buffer_filename=args.env,  # halfcheetah_101000.pkl',
         load_buffer=True,
-        env=args.env,
+        env_name=args.env,
         seed=args.seed,
         # bonus_type
         use_bonus_policy=False,
@@ -243,7 +235,7 @@ if __name__ == "__main__":
         reward_shift=args.reward_shift,
 
         algorithm_kwargs=dict(
-            num_epochs=3000,
+            num_epochs=args.num_epochs,
             num_eval_steps_per_epoch=5000,
             num_trains_per_train_loop=1000,
             num_expl_steps_per_train_loop=1000,
@@ -255,6 +247,8 @@ if __name__ == "__main__":
         ),
         trainer_kwargs=dict(
             discount=0.99,
+            policy_learning_rate=args.policy_lr,
+            qf_learning_rate=args.qf_lr,
         ),
         qf_kwargs=dict(
             hidden_sizes=[400, 300],
@@ -292,7 +286,8 @@ if __name__ == "__main__":
         exp_dir = '{}/offline/{}_{}'.format(args.env, timestamp, args.seed)
 
     # setup the logger
-    setup_logger(variant=variant, log_dir='logs/{}'.format(exp_dir))
+    log_dir = 'logs/td3/deterministic/{}'.format(exp_dir)
+    setup_logger(variant=variant, log_dir=log_dir)
 
     # cuda setup
     use_cuda = not args.no_cuda and torch.cuda.is_available()
@@ -307,5 +302,5 @@ if __name__ == "__main__":
         map_location = 'cpu'
         ptu.set_gpu_mode(False)  # optionally set the GPU (default=False)
 
-    print('experiment dir:logs/{}'.format(exp_dir))
+    print('experiment dir:{}'.format(log_dir))
     experiment(variant)

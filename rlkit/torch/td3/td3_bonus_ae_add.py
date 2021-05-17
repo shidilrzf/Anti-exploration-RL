@@ -117,12 +117,14 @@ class TD3_AE_ADD_Trainer(TorchTrainer):
             obs = (obs - self.obs_mu) / self.obs_std
             # actions = (actions - self.actions_mu) / self.actions_std
         action_hat, _, _ = self.bonus_network(obs, actions)
-        bonus = self.beta * (abs(action_hat - actions)).mean(dim=-1).unsqueeze(-1)
+        # bonus = (abs(action_hat - actions)).mean(dim=-1).unsqueeze(-1)
+        bonus = (abs(action_hat - actions)**2).mean(dim=-1).unsqueeze(-1)
+        bonus = bonus / actions.size(-1)
 
         if self.use_log:
-            return - torch.exp(bonus)
+            return torch.exp(bonus)
         else:
-            return - bonus
+            return bonus
 
     def train_from_torch(self, batch):
         rewards = batch['rewards']
@@ -130,6 +132,10 @@ class TD3_AE_ADD_Trainer(TorchTrainer):
         obs = batch['observations']
         actions = batch['actions']
         next_obs = batch['next_observations']
+
+        # make rewrads posutive
+        if self.rewards_shift_param is not None:
+            rewards = rewards - self.rewards_shift_param
 
         """
         Critic operations.
@@ -151,7 +157,7 @@ class TD3_AE_ADD_Trainer(TorchTrainer):
         # use bonus in critic
         if self.use_bonus_critic:
             critic_bonus = self._get_bonus(next_obs, noisy_next_actions)
-            target_q_values = target_q_values + critic_bonus
+            target_q_values = target_q_values - self.beta * critic_bonus
 
         q_target = self.reward_scale * rewards + (1. - terminals) * self.discount * target_q_values
         q_target = q_target.detach()
@@ -183,7 +189,7 @@ class TD3_AE_ADD_Trainer(TorchTrainer):
             # use bonus in policy
             if self.use_bonus_policy:
                 actor_bonus = self._get_bonus(obs, policy_actions)
-                q_output = q_output + actor_bonus
+                q_output = q_output - self.beta * actor_bonus
 
             policy_loss = - q_output.mean()
 
